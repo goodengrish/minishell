@@ -5,6 +5,7 @@
 #include "lib/ouvrirRepertoire.h"
 #include "lib/utilitiesString.h"
 #include "lib/memoirePartager.h"
+#include "lib/redirection.h"
 #include "mytinyshell.h"
 
 int executeProgramme(char **uneCommande){
@@ -18,7 +19,6 @@ int executeProgramme(char **uneCommande){
 	
 	if (!pid){
 
-		printf("Appel de execvp avec "); afficherTableauDeString(uneCommande);
 		execvp(*uneCommande, uneCommande);
 		_exit(127);
 	
@@ -70,6 +70,8 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 	if (status != -2) return (status == 1)? 0 : 1;
 	status = executerCommandOperationSurLesVariables(idGlobal, VAR_GLOBAL, uneCommande);
 	if (status != -2) return (status == 1)? 0 : 1;
+	status = executeRedirection(uneCommande);
+	if (status != -2) return (status == 1)? 0 : 1;
 	return executeProgramme(uneCommande);
 
 }
@@ -91,7 +93,7 @@ int executeLesCommandes(char **pointerProchaineCommande){
 			
 		assert(resultatDerniereCommande == 0 || resultatDerniereCommande == 1);
 
-		if ( *pointerProchaineCommande == NULL) fini = 1;
+		if (pointerProchaineCommande == NULL || *pointerProchaineCommande == NULL) fini = 1;
 		if (operateurCommandeCourrantPrecedant){
 			if (operateurCommandeCourrantPrecedant == CODE_ET_LOGIQUE){
 				if ( !(resultatDesCommandes  && resultatDerniereCommande) ) return 0;

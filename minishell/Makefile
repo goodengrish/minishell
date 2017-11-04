@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 EXECUTABLE_NOM = tinyshell
-OBJECT = mytinyshell.o allocationChaine.o utilitiesString.o ouvrirRepertoire.o memoirePartager.o
+OBJECT = mytinyshell.o allocationChaine.o utilitiesString.o ouvrirRepertoire.o memoirePartager.o redirection.o
 
 all: tinyshell
 
@@ -19,6 +19,9 @@ ouvrirRepertoire.o : lib/ouvrirRepertoire.c lib/ouvrirRepertoire.h
 
 memoirePartager.o : lib/memoirePartager.c lib/memoirePartager.h
 	$(CC) $(CFAGS) -c lib/memoirePartager.c
+
+redirection.o : lib/redirection.c lib/redirection.h
+	$(CC) $(CFAGS) -c lib/redirection.c
 
 zip: clean save
 	zip project SAVE/* SAVE/*/*

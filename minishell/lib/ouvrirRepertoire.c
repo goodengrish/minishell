@@ -27,6 +27,13 @@ int cheminExist(char *chemin){
 
 }
 
+int fichierExist( char *fichier){
+
+    int resultat = 0, fd;
+    if ( (fd = open(fichier, O_RDONLY) != ERR)){resultat = 1; close(fd);}
+    return resultat;
+}
+
 int fichierExistDans(char *repertoire, char *fichier){
 
     char* chemin;
@@ -70,5 +77,32 @@ int processPereEstUnTinyShell(){
     close(fd);
     free(procPereChemin);
     return resultat;
+
+}
+
+int obtenirLeFDFichier(char *fichierNom, int mode){
+
+    int fd;
+
+    if (mode == O_WRONLY) remove(fichierNom);
+
+    fd = open(fichierNom, mode);
+
+    if (fd == ERR){
+        if (errno == ENOENT){
+            fd = open(fichierNom, O_CREAT | mode, 0640);
+            if (fd == ERR){
+                printf("Probleme lors de la creation de fichier (abandon)\n");
+                return -1;
+            }
+        }
+        else {
+            printf("Probléme lors de l'ouverture du fichier (abandon)\n");
+            return -1;
+        }
+    }
+
+    assert(fd != ERR);
+    return fd;
 
 }
