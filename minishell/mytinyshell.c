@@ -1,7 +1,6 @@
 #include "src/quivontbien.h"
 
 #include "lib/CONST_mytinyshell.h"
-#include "lib/allocationChaine.h"
 #include "lib/ouvrirRepertoire.h"
 #include "lib/utilitiesString.h"
 #include "lib/memoirePartager.h"
@@ -66,11 +65,13 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 	uneCommande = (*prochaineCommande);
 	(*prochaineCommande) = analyseCommande+1;
 
+	afficherTableauDeString(uneCommande);
+
+	status = executeRedirection(uneCommande);
+	if (status != -2) return (status == 1)? 0 : 1;
 	status = executerCommandOperationSurLesVariables(idLocal, VAR_LOCAL, uneCommande);
 	if (status != -2) return (status == 1)? 0 : 1;
 	status = executerCommandOperationSurLesVariables(idGlobal, VAR_GLOBAL, uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
-	status = executeRedirection(uneCommande);
 	if (status != -2) return (status == 1)? 0 : 1;
 	return executeProgramme(uneCommande);
 
@@ -146,11 +147,49 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 	}
 
 	bufferCommandes[arguments] = NULL;
-	
-	afficherTableauDeString(bufferCommandes);
 
 	return bufferCommandes;
 
+}
+
+int bufferDepuisLentrerStandard(char **bufferDeSortie){
+	
+	int nombreDeCaractereLue = 0,
+		nombreTotalDeCaractereLue = 0,
+		tailleDuBuffer = ALLOCATION_CHAINE_TAILLE_BUFFER;
+	
+	char *buffer,
+		 *bufferDynamique;
+	
+	buffer = (char*) malloc(sizeof(char)*ALLOCATION_CHAINE_TAILLE_BUFFER);
+	
+	bufferDynamique = buffer;
+	
+	do {
+		//nombreDeCaractereLue = read(fd, bufferDynamique, ALLOCATION_CHAINE_EXTEND_BUFFER);
+		fgets(bufferDynamique, ALLOCATION_CHAINE_EXTEND_BUFFER, stdin);
+		nombreDeCaractereLue = strlen(bufferDynamique);
+	
+		nombreTotalDeCaractereLue += nombreDeCaractereLue;
+	
+		if ( (tailleDuBuffer - ALLOCATION_CHAINE_EXTEND_BUFFER) < nombreTotalDeCaractereLue){
+			buffer = (char*) realloc(buffer, tailleDuBuffer += 2*ALLOCATION_CHAINE_EXTEND_BUFFER);
+		}
+	
+		bufferDynamique = buffer + nombreTotalDeCaractereLue;
+	
+	} while (nombreDeCaractereLue == ALLOCATION_CHAINE_EXTEND_BUFFER);
+	
+	if (nombreTotalDeCaractereLue == tailleDuBuffer){
+		buffer = (char*) realloc(buffer, tailleDuBuffer + 1);
+	} 
+	
+	memset(buffer+nombreDeCaractereLue, 0, tailleDuBuffer - nombreDeCaractereLue-1);
+	
+	//printf("fd;%d & lu [%s] (%d caractéres), espace total de buffer %d\n", fd, buffer, nombreDeCaractereLue+1, tailleDuBuffer);
+	*bufferDeSortie = buffer;
+	return tailleDuBuffer;
+	
 }
 
 
@@ -175,13 +214,21 @@ int main(int argc, char** argv, char **envp){
 	
 	for (; !fini;){
 
+		int espaceDuBuffer;
+		char **bufferDeVidage;
+
 		putchar('~'); putchar('>'); putchar(' ');
-		bufferStdin = bufferDepuisLentrerStandard();
+		espaceDuBuffer = bufferDepuisLentrerStandard(&bufferStdin);
 		CommandesParLignes = ChaineVersTabDeChaineParReference(idLocal, idGlobal, bufferStdin);
 
 		if (*bufferStdin == '\n' || *CommandesParLignes == NULL);
 		else if ( !strcmp("exit", bufferStdin)) fini = 1;
 		else if (*bufferStdin != '\n')printf(":%s:\n", executeLesCommandes(CommandesParLignes)? "SUCCES" : "FAILED");
+
+		for ( bufferDeVidage = CommandesParLignes; *bufferDeVidage ; ++bufferDeVidage){
+			if (bufferStdin <= *bufferDeVidage && *bufferDeVidage <= bufferStdin + espaceDuBuffer) continue;
+			else free(*bufferDeVidage);
+		}
 
 		free(CommandesParLignes);
 		free(bufferStdin);

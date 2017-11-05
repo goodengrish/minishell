@@ -1,15 +1,12 @@
 CC = gcc
 CFLAGS = -Wall -g
 EXECUTABLE_NOM = tinyshell
-OBJECT = mytinyshell.o allocationChaine.o utilitiesString.o ouvrirRepertoire.o memoirePartager.o redirection.o
+OBJECT = mytinyshell.o utilitiesString.o ouvrirRepertoire.o memoirePartager.o redirection.o
 
 all: tinyshell
 
 tinyshell: $(OBJECT)
 	$(CC) $(CFLAGS) $(OBJECT) -o $(EXECUTABLE_NOM)
-
-allocationChaine.o : lib/allocationChaine.c src/quivontbien.h lib/allocationChaine.h
-	$(CC) $(CFAGS) -c lib/allocationChaine.c
 
 utilitiesString.o : lib/utilitiesString.c  lib/utilitiesString.h
 	$(CC) $(CFAGS) -c lib/utilitiesString.c

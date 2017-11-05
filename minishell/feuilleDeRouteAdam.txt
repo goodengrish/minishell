@@ -1,5 +1,0 @@
-###
-en cours:
-
-mycd.c
--> prendre en compte le fait qu'il peut n'y avoir aucun répertoire en arguments

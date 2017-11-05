@@ -84,8 +84,6 @@ int obtenirLeFDFichier(char *fichierNom, int mode){
 
     int fd;
 
-    if (mode == O_WRONLY) remove(fichierNom);
-
     fd = open(fichierNom, mode);
 
     if (fd == ERR){

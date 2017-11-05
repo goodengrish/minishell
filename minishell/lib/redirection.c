@@ -2,6 +2,7 @@
 
 #include "CONST_mytinyshell.h"
 #include "ouvrirRepertoire.h"
+#include "memoirePartager.h"
 #include "utilitiesString.h"
 
 /* a = cmd; b = fichier
@@ -41,7 +42,7 @@ int executeLaCommandeAvecRedirection(char **commande, char *redirection, char *f
         if ( (fd_fichier_ecraser = obtenirLeFDFichier(fichier, O_WRONLY)) == ERR){
             printf("Un probléme est apparut lors de l'ouverture du fichier [%s] en ecrasement (abandon)\n", fichier); _exit(127);
         }
-        if ( (fd_fichier_ajouter = obtenirLeFDFichier(fichier, O_APPEND)) == ERR){
+        if ( (fd_fichier_ajouter = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY)) == ERR){
             printf("Un probléme est apparut lors de l'ouverture du fichier [%s] en ajout (abandon)\n", fichier); _exit(127);
         }
 
@@ -99,9 +100,7 @@ int executerRedirection2(char **commande, char *redirection, char *fichier){
 
 int executeRedirection(char **commande){
 
-    int resultat = -2;
     char **pps = pointeurProchainSeparateur(commande);
-
     return (*pps == NULL)? -2 : executerRedirection2(commande, *pps, *(pps+1)) == 0;
 
 }
