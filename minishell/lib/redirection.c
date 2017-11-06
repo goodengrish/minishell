@@ -22,85 +22,57 @@ char** pointeurProchainSeparateur(char **commande){
     return commande;
 }
 
-int executeLaCommandeAvecRedirection(char **commande, char *redirection, char *fichier){
+int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
 
-    pid_t pid;
-    int status;
+    char **anull;
+    int fd_fichier_ecraser,fd_fichier_ajouter,fd_fichier_lire;
+    int fd_fichier, doubleDup = 0;
 
-    pid = fork();
-	
-	TESTFORKOK(pid);
-	
-	if (!pid){
-
-        char **anull;
-        int fd_fichier_ecraser,fd_fichier_ajouter,fd_fichier_lire;
-
-        if ( (fd_fichier_lire = obtenirLeFDFichier(fichier, O_RDONLY)) == ERR){
-            printf("Un probléme est apparut lors de l'ouverture du fichier [%s] en lecture (abandon)\n", fichier); _exit(127);
-        }
-        if ( (fd_fichier_ecraser = obtenirLeFDFichier(fichier, O_WRONLY)) == ERR){
-            printf("Un probléme est apparut lors de l'ouverture du fichier [%s] en ecrasement (abandon)\n", fichier); _exit(127);
-        }
-        if ( (fd_fichier_ajouter = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY)) == ERR){
-            printf("Un probléme est apparut lors de l'ouverture du fichier [%s] en ajout (abandon)\n", fichier); _exit(127);
-        }
-
-        if ( CARACTERE_REDIRECTION_O_STDOUT(redirection)){
-            close(STDOUT_FILENO);dup(fd_fichier_ecraser);
-        }
-        else if (CARACTERE_REDIRECTION_STDIN(redirection)){
-            close(STDIN_FILENO);dup(fd_fichier_lire);
-        }
-        else if (CARACTERE_REDIRECTION_A_STDOUT(redirection)){
-            close(STDOUT_FILENO);dup(fd_fichier_ajouter);
-        }
-        else if (CARACTERE_REDIRECTION_O_STDOUTERR(redirection)){
-            close(STDOUT_FILENO); dup(fd_fichier_ecraser); close(STDERR_FILENO); dup(fd_fichier_ecraser);
-        }
-        else if (CARACTERE_REDIRECTION_A_STDOUTERR(redirection)){
-            close(STDOUT_FILENO); dup(fd_fichier_ajouter); close(STDERR_FILENO); dup(fd_fichier_ajouter);
-        }
-        else if (CARACTERE_REDIRECTION_O_STDERR(redirection)){
-            close(STDERR_FILENO);dup(fd_fichier_ecraser);
-        }
-        else if (CARACTERE_REDIRECTION_A_STDERR(redirection)){
-            close(STDERR_FILENO);dup(fd_fichier_ajouter);
-        }
-        else {
-            printf("Erreur operateur de redirection inconnue (%s) (abandons)\n", redirection);
-            _exit(127);
-        }
-
-        anull = pointeurProchainSeparateur(commande);
-        *anull = NULL;
-
-		execvp(*commande, commande);
-		_exit(127);
-	
-	} else {
-        
-        wait(&status);
-		return (WIFEXITED(status))? WEXITSTATUS(status) : -1;
-	
-	}
-
-	return -1;
-
-}
-
-int executerRedirection2(char **commande, char *redirection, char *fichier){
-
-    if (!CARACTERE_REDIRECTION(redirection)){
-        printf("Erreur operateur de redirection inconnue (%s) (abandons)\n", redirection);
-        return 0;
+    if ( CARACTERE_REDIRECTION_O_STDOUT(redirection)){
+        close(STDOUT_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_WRONLY | O_TRUNC);
     }
-    return executeLaCommandeAvecRedirection(commande, redirection, fichier);
+    else if (CARACTERE_REDIRECTION_STDIN(redirection)){
+        close(STDIN_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_RDONLY);
+    }
+    else if (CARACTERE_REDIRECTION_A_STDOUT(redirection)){
+        close(STDOUT_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY);
+    }
+    else if (CARACTERE_REDIRECTION_O_STDOUTERR(redirection)){
+        close(STDOUT_FILENO); close(STDERR_FILENO); doubleDup=1;
+        fd_fichier= obtenirLeFDFichier(fichier, O_WRONLY | O_TRUNC);
+    }
+    else if (CARACTERE_REDIRECTION_A_STDOUTERR(redirection)){
+        close(STDOUT_FILENO); close(STDERR_FILENO); doubleDup=1;
+        fd_fichier = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY);
+    }
+    else if (CARACTERE_REDIRECTION_O_STDERR(redirection)){
+        close(STDERR_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_WRONLY | O_TRUNC);
+    }
+    else if (CARACTERE_REDIRECTION_A_STDERR(redirection)){
+        close(STDERR_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY);
+    }
+    else {
+        printf("Erreur operateur de redirection inconnue (%s) (abandons)\n", redirection);
+        _exit(127);
+    }
+
+    if ( fd_fichier == ERR){
+        printf("Un probléme est apparut lors de l'ouverture du fichier [%s]  (abandon)\n", fichier); _exit(127);
+    }
+
+    dup(fd_fichier);
+    if (doubleDup) dup(fd_fichier);
+
+    anull = pointeurProchainSeparateur(commande);
+    *anull = NULL;
+
+    return fd_fichier;
 }
 
-int executeRedirection(char **commande){
+//retorune FD ou -2
+int executeRedirectionSiBesoin(char **commande){
 
     char **pps = pointeurProchainSeparateur(commande);
-    return (*pps == NULL)? -2 : executerRedirection2(commande, *pps, *(pps+1)) == 0;
+    return (*pps == NULL)? -2 : redirigeSiBesoin(commande, *pps, *(pps+1));
 
 }

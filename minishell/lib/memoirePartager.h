@@ -38,6 +38,6 @@ int   obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat)
 int   preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur);
 int   preformatSupprimerUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur);
 int   preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemble);
-int   executerCommandOperationSurLesVariables(MemoirePartagerId id, int espace , char **CommandesParLignes);
+int   executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes);
 
 #endif

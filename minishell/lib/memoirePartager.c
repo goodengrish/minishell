@@ -216,13 +216,20 @@ int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat){
 }
 
 // non générique enfin si on quitte les set/setenv
-int executerCommandOperationSurLesVariables(MemoirePartagerId id, int espace , char **CommandesParLignes){
+int executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes){
     
     int res = -2;
     char *ajouter, *enlever;
+    MemoirePartagerId id;
 
-    if (espace == VAR_LOCAL){ ajouter = "set"; enlever = "unset";}
-    else if (espace == VAR_GLOBAL){ ajouter = "setenv"; enlever = "unsetenv";}
+    if (espace == VAR_LOCAL){ 
+        ajouter = "set"; enlever = "unset";
+        id = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, getpid()), 0);
+    }
+    else if (espace == VAR_GLOBAL){ 
+        ajouter = "setenv"; enlever = "unsetenv";
+        id = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, 1), 0);
+    }
     else return res;
     
     if (**CommandesParLignes == '\n') return 0;

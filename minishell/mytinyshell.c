@@ -12,11 +12,18 @@ int executeProgramme(char **uneCommande){
 	pid_t pid;
 	int status;
 
+	status = executerCommandOperationSurLesVariables(VAR_LOCAL, uneCommande);
+	if (status != -2) return (status == 1)? 0 : 1;
+	status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande);
+	if (status != -2) return (status == 1)? 0 : 1;
+
 	pid = fork();
 	
 	TESTFORKOK(pid);
 	
 	if (!pid){
+
+		executeRedirectionSiBesoin(uneCommande);
 
 		execvp(*uneCommande, uneCommande);
 		_exit(127);
@@ -37,16 +44,11 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 	char **uneCommande = NULL;
 	char operateurLogique = 0;
 	char operateurDeFin = 0;
-	int status = 1;
-	int idLocal, idGlobal;
 
 	if ( prochaineCommande == NULL || (*prochaineCommande) == NULL){ 
 		*operateur = 0;
 		return 0;
 	}
-
-	idLocal = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, getpid()), 0);
-	idGlobal =  creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, 1), 0);
 
 	for (analyseCommande = (*prochaineCommande); *analyseCommande; ){
 
@@ -67,12 +69,6 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 
 	afficherTableauDeString(uneCommande);
 
-	status = executeRedirection(uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
-	status = executerCommandOperationSurLesVariables(idLocal, VAR_LOCAL, uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
-	status = executerCommandOperationSurLesVariables(idGlobal, VAR_GLOBAL, uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
 	return executeProgramme(uneCommande);
 
 }
