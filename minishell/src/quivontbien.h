@@ -23,5 +23,6 @@
 #define ERREUR(s) perror(s)
 #define FATALE_ERREUR(s,n) ERREUR(s),exit(n);
 #define TESTFORKOK(pid) if(pid==ERR){fprintf(stderr,"fork-1 (%s).c,(%d)Li\n", __FILE__, __LINE__);exit(errno);}
+#define NUMBEROFTHEBEAST 666
 
 #endif
