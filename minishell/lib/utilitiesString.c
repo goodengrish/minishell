@@ -123,6 +123,7 @@ char **prochaineCommandeApresSeparateur(char **commande, char *seperateur){
     char **prochaineCommande;
 
     for (prochaineCommande = commande; *prochaineCommande && strcmp(*prochaineCommande,seperateur); ++prochaineCommande);
+    if (prochaineCommande == NULL) return prochaineCommande;
     return prochaineCommande+1;
 }
 
