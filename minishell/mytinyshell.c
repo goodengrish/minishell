@@ -191,7 +191,7 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 		}
 
 		if (arguments+2 == tailleMax){
-			char **p = (char**) realloc(bufferCommandes, tailleMax+8);
+			char **p = (char**) realloc(bufferCommandes, sizeof(char*)*(tailleMax+8));
 			if (p == NULL){printf("Erreur de realloc (abandon)\n"); exit(55);}
 			bufferCommandes = p; tailleMax += 8;
 		}
