@@ -8,17 +8,19 @@ struct sembuf SEM_DECENDRE = {0,-1,0};
 
 int estDansLeFormatClefValeur(char *clefvaleur){
 
-    if (*clefvaleur == '=') return 0;
-    for ( ; *clefvaleur && *clefvaleur != '='; ++clefvaleur);
-    if (*clefvaleur != '=') return 0;
+    static const char EGAL = '=';
+
+    if (*clefvaleur == EGAL) return 0;
+    for ( ; *clefvaleur && *clefvaleur != EGAL; ++clefvaleur);
+    if (*clefvaleur != EGAL) return 0;
     ++clefvaleur;
-    return *clefvaleur != '\0';
+    return *clefvaleur;
 }
 
 key_t genererUneClef(char *unChemin, int unEntier){
 
     key_t k = ftok(unChemin,unEntier+1);
-    if (k == ERR) FATALE_ERREUR("key_t-1\n", errno);
+    if (k == ERR) FATALE_ERREUR(MEMP_ERREUR_KEYT, errno);
     return k;
 }
 
@@ -49,7 +51,7 @@ MemoirePartagerId creeEspaceDeMemoirePartager(key_t clef, int creeNouveaux){
         return id; 
     }
 
-    if (id == ERR) FATALE_ERREUR("shmget-1\n", errno);
+    if (id == ERR) FATALE_ERREUR(MEMP_ERREUR_SHMGET, errno);
     nettoieUneZoneDeMemoirePartager(id);
     table = (TableDeHachage*) attacherMemoirePartager(id);
     table->semaphore_lecture = semget(IPC_PRIVATE, 1, 0600);
@@ -66,7 +68,7 @@ void* attacherMemoirePartager(MemoirePartagerId id){
     void* zone = NULL;
 
     zone = shmat(id, 0, 0);
-    if (zone == NULL) FATALE_ERREUR("shmat-1\n", 7);
+    if (zone == NULL) FATALE_ERREUR(MEMP_ERREUR_SHMAT, 7);
     return zone;
 }
 
@@ -101,7 +103,7 @@ int insererUneValeur(MemoirePartagerId id, char *clefvaleur){
     }
 
     if (TAILLE_MEMOIRE_PARTAGER_DEFAUT -1 <= (lecteur - table->liste) + strlen(clefvaleur)){
-        printf("Espace insufisant dans le zone pour inserer [%s] (abandons)\n", clefvaleur);
+        printf(MEMP_ERREUR_PASASSEZDESPACE, clefvaleur);
 
         if (sauvegarde != NULL) {
             strcpy(lecteur, sauvegarde);
@@ -141,7 +143,7 @@ char *obtenirLadresseDuneClefvaleur(char *chaine, char *clefvaleur){
 char* obtenirLaValeur(TableDeHachage *table, char *clefvaleur){
     
     char *p = obtenirLadresseDuneClefvaleur(table->liste, clefvaleur);
-    if (*p == '\0') return NULL;
+    if ( !(*p) ) return NULL;
     return chaineCopieJusqua(valeurDuneClef(p), MEMOIRE_PARTAGER_SEPARATEUR);
 }
 
@@ -169,8 +171,7 @@ int supprimerClefValeur(MemoirePartagerId id, char *clefvaleur){
 
 void afficherUneTableDeHachage(TableDeHachage *table){
 
-    printf("[%s]", table->liste);
-    printf("\n");
+    printf("[%s]\n", table->liste);
 }
     
 int preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur){
@@ -211,23 +212,23 @@ int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat){
     table = (TableDeHachage*) attacherMemoirePartager(id);
     *resultat = obtenirLaValeur(table, clef);
     detacherMemoirePartager(table);
-    return (*resultat == NULL)? 0 : 1;
+    return *resultat != NULL;
     
 }
 
 // non générique enfin si on quitte les set/setenv
 int executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes){
     
-    int res = -2;
+    int res = IGNORE_COMMANDE;
     char *ajouter, *enlever;
     MemoirePartagerId id;
 
     if (espace == VAR_LOCAL){ 
-        ajouter = "set"; enlever = "unset";
+        ajouter = SET; enlever = UNSET;
         id = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, getpid()), 0);
     }
     else if (espace == VAR_GLOBAL){ 
-        ajouter = "setenv"; enlever = "unsetenv";
+        ajouter = SETENV; enlever = UNSETENV;
         id = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, 1), 0);
     }
     else return res;

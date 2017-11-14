@@ -18,10 +18,21 @@
 #include <sys/sem.h>
 
 #define ERR -1
+#define IGNORE_COMMANDE -2
+
+#define ANTISLASHZERO '\0'
+#define RETOURALALIGNE '\n'
+#define ANTISLASH '\\'
+#define ESPACE ' '
+#define QUOTE '"'
+
 #define SHELLIDFICHIER "Makefile"
 #define DROITS_DE_BASE 0600
+
 #define ERREUR(s) perror(s)
 #define FATALE_ERREUR(s,n) ERREUR(s),exit(n);
+#define RETURN_ERREUR(s,n) {ERREUR(s);return n;}
 #define TESTFORKOK(pid) if(pid==ERR){fprintf(stderr,"fork-1 (%s).c,(%d)Li\n", __FILE__, __LINE__);exit(errno);}
+#define REALLOC_ERREUR(n) fprintf(stderr,"Erreur de realloc %s ligne:%d (abandon)\n", __FILE__, __LINE__),exit(n);
 
 #endif

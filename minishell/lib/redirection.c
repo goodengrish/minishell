@@ -73,6 +73,6 @@ int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
 int executeRedirectionSiBesoin(char **commande){
 
     char **pps = pointeurProchainSeparateur(commande);
-    return (*pps == NULL)? -2 : redirigeSiBesoin(commande, *pps, *(pps+1));
+    return (*pps == NULL)? IGNORE_COMMANDE : redirigeSiBesoin(commande, *pps, *(pps+1));
 
 }

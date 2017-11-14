@@ -1,8 +1,13 @@
 #include "src/quivontbien.h"
 
+#if !defined(DEBUG)
+#define DEBUG 0
+#endif
+
 #include "lib/CONST_mytinyshell.h"
 #include "lib/ouvrirRepertoire.h"
 #include "lib/utilitiesString.h"
+#include "lib/utilitiesRegex.h"
 #include "lib/memoirePartager.h"
 #include "lib/redirection.h"
 #include "mytinyshell.h"
@@ -12,12 +17,12 @@ int executeProgramme(char **uneCommande){
 	pid_t pid;
 	int status;
 
-	if (*uneCommande == NULL || **uneCommande == '\0') return 0;
+	if (*uneCommande == NULL || !(**uneCommande) ) return 0;
 
 	status = executerCommandOperationSurLesVariables(VAR_LOCAL, uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
+	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
 	status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande);
-	if (status != -2) return (status == 1)? 0 : 1;
+	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
 
 	pid = fork();
 	TESTFORKOK(pid);
@@ -31,7 +36,7 @@ int executeProgramme(char **uneCommande){
 	
 	} else {
 		wait(&status);
-		return (WIFEXITED(status))? WEXITSTATUS(status) : -1;
+		return (WIFEXITED(status))? WEXITSTATUS(status) : ERR;
 	
 	}
 
@@ -68,7 +73,7 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 	uneCommande = (*prochaineCommande);
 	(*prochaineCommande) = analyseCommande+1;
 
-	printf("[CONSOLE LOG] Lancement de:");afficherTableauDeString(uneCommande);
+	if (DEBUG){printf("[CONSOLE LOG] Lancement de:");afficherTableauDeString(uneCommande);}
 
 	return executeProgramme(uneCommande);
 
@@ -88,8 +93,6 @@ int executeLesCommandes(char **pointerProchaineCommande){
 
 		resultatDerniereCommande =  executeProchaineCommande(&pointerProchaineCommande, &operateurCommandeCourrantSuivante);
 		resultatDerniereCommande = (resultatDerniereCommande)? 0 : 1;
-			
-		assert(resultatDerniereCommande == 0 || resultatDerniereCommande == 1);
 
 		if (pointerProchaineCommande == NULL || *pointerProchaineCommande == NULL) fini = 1;
 		if (operateurCommandeCourrantPrecedant){
@@ -118,11 +121,11 @@ char *extraieLaVariable(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, c
 	char *resultat = NULL;
 	char sauve;
 	char *caractere = *car, *c = caractere+1;
-	for (; *c && *c != ' ' && !UN_CARACTERE_SEPARATEUR(*c) && *c != '\n'; ++c);
-	sauve = *c; *c = '\0';
+	for (; *c && *c != ESPACE && !UN_CARACTERE_SEPARATEUR(*c) && *c != RETOURALALIGNE; ++c);
+	sauve = *c; *c = ANTISLASHZERO;
 
 
-	printf("[CONSOLE LOG] Var:[%s]", caractere);
+	if (DEBUG){printf("[CONSOLE LOG] Var:[%s]", caractere);}
 
 	if (obtenirLaValeurDuneClef(idLocal, caractere+1, &resultat));
 	else if (obtenirLaValeurDuneClef(idGlobal, caractere+1, &resultat));
@@ -131,7 +134,7 @@ char *extraieLaVariable(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, c
 	*c = sauve;
 	*car = c;
 
-	printf("=[%s]\n",resultat);
+	if (DEBUG){printf("=[%s]\n",resultat);}
 	return resultat;
 }
 
@@ -146,7 +149,7 @@ char *extraireLeSeparateur(char **caractere){
 
 	tmp = separateur;
 	for (; *c && UN_CARACTERE_SEPARATEUR(*c) ; ++c){
-		*tmp++ = *c; *c = '\0';
+		*tmp++ = *c; *c = ANTISLASHZERO;
 	}
 
 	*caractere = c;
@@ -155,7 +158,7 @@ char *extraireLeSeparateur(char **caractere){
 
 int compareDecalageAntislash(char caractere){
 
-	return caractere == '\0' || caractere == ' ' || caractere == '\n' || UN_CARACTERE_SEPARATEUR(caractere);
+	return caractere == ANTISLASHZERO || caractere == ESPACE || caractere == RETOURALALIGNE || UN_CARACTERE_SEPARATEUR(caractere);
 }
 
 char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, char *buffer){
@@ -167,9 +170,9 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 	int arguments = 0, tailleMax = TAILLE_SORTIE_DEFAUT;
 
 	if (UN_CARACTERE_SEPARATEUR(*buffer)){
-		printf("erreur de syntaxe prés du symbole inattendu %c\n", *buffer);
+		printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, *buffer);
 		bufferCommandes[0] = NULL;
-		*buffer = '\n';
+		*buffer = RETOURALALIGNE;
 		return bufferCommandes;
 	}
 
@@ -177,59 +180,73 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 	for (caractere = buffer ; *caractere && isspace(*caractere); ++caractere);
 	for (arguments = 0 ; *caractere ; ++arguments){
 
-		if (*caractere == '\n'){*caractere = '\0'; continue;}
+		if (*caractere == RETOURALALIGNE){*caractere = ANTISLASHZERO; continue;}
 
-		if (*caractere == '"'){
+		if (*caractere == QUOTE){
 			++caractere;
 			bufferCommandes[arguments] = caractere;
-			for (; *caractere && *caractere != '"'; ++caractere);
-			if (*caractere == '\0'){
-				printf("Erreur symbole <\"> manquant (abandon)\n"); 
-				*buffer='\n'; return bufferCommandes;
+			for (; *caractere && *caractere != QUOTE; ++caractere);
+			if (*caractere == ANTISLASHZERO){
+				printf(MTSHELL_ERREUR_ANTISLASH_VIDE); 
+				*buffer=RETOURALALIGNE; return bufferCommandes;
 			}
-			*caractere = '\0'; ++caractere; continue;
+			*caractere = ANTISLASHZERO; ++caractere; continue;
 		}
 
 		if (arguments+2 == tailleMax){
-			char **p = (char**) realloc(bufferCommandes, tailleMax+8);
-			if (p == NULL){printf("Erreur de realloc (abandon)\n"); exit(55);}
+			char **p = (char**) realloc(bufferCommandes, sizeof(char*)*(tailleMax+8));
+			if (p == NULL) REALLOC_ERREUR(126);
 			bufferCommandes = p; tailleMax += 8;
 		}
 
 		if (CARACTERE_VARIABLE(caractere)){
 			bufferCommandes[arguments] = extraieLaVariable(idLocal, idGlobal, &caractere);
 		}
-		else if ( (buffer < caractere) && *(caractere-1) != '\\' && UN_CARACTERE_SEPARATEUR(*caractere)){
+		else if ( (buffer < caractere) && *(caractere-1) != ANTISLASH && UN_CARACTERE_SEPARATEUR(*caractere)){
 			if (CARACTERE_SEPARATEUR_TOTAL(caractere)) 
 				bufferCommandes[arguments] = extraireLeSeparateur(&caractere);
 			else {
-				printf("erreur de syntaxe prés du symbole innatendu %c (abandon)\n", *caractere);
-				*buffer = '\n';
+				printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, *caractere);
+				*buffer = RETOURALALIGNE;
 				return bufferCommandes;
 			}
 		}
 		else {
 			char *p;
-			int contientdesAntiSlash = 0;
+			int contientdesAntiSlash = 0,
+			    contientDesRegex = 0,
+			    bloquerRegex = 0;
 
 			bufferCommandes[arguments] = caractere;
 			for (; !compareDecalageAntislash(*caractere) ; ){
-				if (*caractere == '\\'){
+				if (*caractere == ANTISLASH){
 					++contientdesAntiSlash;
-					if (*(caractere+1) == '\0' ||  *(caractere+1) == '\n'){
-						printf("erreur de syntaxe prés du symbole innatendu <\\> (abandon)\n");
-						*buffer = '\n';
+					if (*(caractere+1) == ANTISLASHZERO ||  *(caractere+1) == RETOURALALIGNE){
+						printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, ANTISLASH);
+						*buffer = RETOURALALIGNE;
 						return bufferCommandes;
-					} ++caractere;
-				}
+					} else if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) bloquerRegex = 1;
+					++caractere;
+				} 
+				if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) ++contientDesRegex;
 				++caractere;
 			}
-			if (*caractere == ' ' || *caractere == '\n') *caractere++ = '\0';
+			if (*caractere == ESPACE || *caractere == RETOURALALIGNE) *caractere++ = ANTISLASHZERO;
 
 			//supprimer les '\'
 			if (contientdesAntiSlash){
 				for (p = bufferCommandes[arguments]; *p; ++p){
-					if (*p == '\\'){ *(decalerDansLaMemeChaine(p+1,p)) = '\0';}				
+					if (*p == ANTISLASH){ *(decalerDansLaMemeChaine(p+1,p)) = ANTISLASHZERO;}				
+				}
+			} else if(!bloquerRegex && contientDesRegex){
+				
+				int anciennePositionArgument = arguments;
+				if (preformatExecuterRegex(&bufferCommandes, &arguments, &tailleMax, bufferCommandes[arguments]) == ERR ||
+				      anciennePositionArgument == arguments){
+
+					printf("Impossible d'acceder à '%s': Aucun fichier au dossier de ce genre\n", bufferCommandes[arguments]);
+					*buffer = '\n';
+					return bufferCommandes;
 				}
 			}
 		}
@@ -239,7 +256,7 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 
 	bufferCommandes[arguments] = NULL;
 
-	printf("[CONSOLE LOG] Commande lue:");afficherTableauDeString(bufferCommandes);
+	if (DEBUG){printf("[CONSOLE LOG] Commande lue:");afficherTableauDeString(bufferCommandes);}
 
 	return bufferCommandes;
 
@@ -267,7 +284,7 @@ int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	
 		if ( (tailleDuBuffer - ALLOCATION_CHAINE_EXTEND_BUFFER) < nombreTotalDeCaractereLue){
 			p = (char*) realloc(buffer, tailleDuBuffer += 2*ALLOCATION_CHAINE_EXTEND_BUFFER);
-			if (p == NULL){printf("Erreur de realloc (abandon)\n"); exit(55);}
+			if (p == NULL) REALLOC_ERREUR(126);
 			buffer = p;
 		}
 	
@@ -277,7 +294,7 @@ int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	
 	if (nombreTotalDeCaractereLue == tailleDuBuffer){
 		p = (char*) realloc(buffer, tailleDuBuffer + 1);
-		if (p == NULL){printf("Erreur de realloc (abandon)\n"); exit(55);}
+		if (p == NULL) REALLOC_ERREUR(126);
 		buffer = p;
 	} 
 	
@@ -289,17 +306,43 @@ int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	
 }
 
-int main(int argc, char** argv, char **envp){
+int executerMinishell(int idLocal, int idGlobal){
 
 	char** CommandesParLignes = NULL;
-	char* bufferStdin = NULL;
-	int fini = 0;
-	int shellId=0;
+	char** bufferDeVidage;
+	char*  bufferStdin = NULL;
+	int    espaceDuBuffer, status = 1, fini = 0;
 
+	AFFICHER_PROMPT();
+	espaceDuBuffer = bufferDepuisLentrerStandard(&bufferStdin);
+
+	if (*bufferStdin == RETOURALALIGNE){ free(bufferStdin); return 1;} 
+
+	CommandesParLignes = ChaineVersTabDeChaineParReference(idLocal, idGlobal, bufferStdin);
+	if ( *CommandesParLignes == NULL);
+	else if ( !strcmp("exit", *CommandesParLignes)) fini = 1;
+	else {
+		status = executeLesCommandes(CommandesParLignes);
+		if (DEBUG) printf("[CONSOLE LOG] :%s:\n", (status)? "SUCCES" : "FAILED");
+	}
+
+	for ( bufferDeVidage = CommandesParLignes; *bufferDeVidage ; ++bufferDeVidage){
+		if (bufferStdin <= *bufferDeVidage && *bufferDeVidage <= bufferStdin + espaceDuBuffer) continue;
+		else free(*bufferDeVidage);
+	}
+
+	free(CommandesParLignes);
+	free(bufferStdin);
+	return !fini;
+}
+
+int main(int argc, char** argv, char **envp){
+
+	int shellId=0;
     MemoirePartagerId idLocal, idGlobal;
 	
 	shellId = processPereEstUnTinyShell();
-	printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d\n", shellId, getpid(), getppid());
+	if (DEBUG){printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d\n", shellId, getpid(), getppid());}
 	idLocal = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, getpid()), 1);
 
 	if (!shellId){
@@ -308,32 +351,12 @@ int main(int argc, char** argv, char **envp){
 
 	} else idGlobal = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, 1), 0);
 	
-	for (; !fini;){
-
-		int espaceDuBuffer;
-		char **bufferDeVidage;
-
-		putchar('~'); putchar('>'); putchar(' ');
-		espaceDuBuffer = bufferDepuisLentrerStandard(&bufferStdin);
-		CommandesParLignes = ChaineVersTabDeChaineParReference(idLocal, idGlobal, bufferStdin);
-
-		if (*bufferStdin == '\n' || *CommandesParLignes == NULL);
-		else if ( !strcmp("exit", bufferStdin)) fini = 1;
-		else if (*bufferStdin != '\n')printf("[CONSOLE LOG] :%s:\n", executeLesCommandes(CommandesParLignes)? "SUCCES" : "FAILED");
-
-		for ( bufferDeVidage = CommandesParLignes; *bufferDeVidage ; ++bufferDeVidage){
-			if (bufferStdin <= *bufferDeVidage && *bufferDeVidage <= bufferStdin + espaceDuBuffer) continue;
-			else free(*bufferDeVidage);
-		}
-
-		free(CommandesParLignes);
-		free(bufferStdin);
-	}
+	for (; executerMinishell(idLocal, idGlobal) ;);
 
 	nettoieUneZoneDeMemoirePartager(idLocal);
 	detruireMemoirePartager(idLocal);
 
-	printf("[CONSOLE LOG] close ====== %d ======\n", shellId);
+	if (DEBUG){printf("[CONSOLE LOG] close ====== %d ======\n", shellId);}
 	if (!shellId){
 		nettoieUneZoneDeMemoirePartager(idGlobal);
 		detruireMemoirePartager(idGlobal);

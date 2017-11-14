@@ -43,14 +43,6 @@ int fichierExistDans(char *repertoire, char *fichier){
     else free(chemin); return 0;
 }
 
-void ecrireLog(char *commande){
-
-    int fd = open("log.txt", O_WRONLY);
-    if (fd == -1){printf("erreur de fd dans ecireLog\n"); exit(5);}
-    write(fd, commande, strlen(commande));
-    close(fd);
-}
-
 int processPereEstUnTinyShell(){
 
     static int NOMBRE = 12;
@@ -90,17 +82,14 @@ int obtenirLeFDFichier(char *fichierNom, int mode){
         if (errno == ENOENT){
             fd = open(fichierNom, O_CREAT | mode, 0640);
             if (fd == ERR){
-                printf("Probleme lors de la creation de fichier (abandon)\n");
-                return -1;
+                printf(ODIR_ERREUR_OUVRIRDIRPB); return -1;
             }
         }
         else {
-            printf("Probléme lors de l'ouverture du fichier (abandon)\n");
-            return -1;
+            printf(ODIR_ERREUR_OUVRIRDIRPB); return -1;
         }
     }
 
-    assert(fd != ERR);
     return fd;
 
 }

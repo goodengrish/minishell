@@ -1,48 +1,50 @@
 #include "../src/quivontbien.h"
 
-#include "utilitiesRegex.h"
 #include "CONST_mytinyshell.h"
 #include "utilitiesString.h"
 #include "ouvrirRepertoire.h"
+#include "utilitiesRegex.h"
 
 int comparateurEstUnCaractereRegex(char c){
 
-    return EST_UNE_CARACTERE_REGEX(&c);
+    return EST_UNE_CARACTERE_REGEX(c);
 }
 
 char *retorunePrefexDeChaine(char *argv1, char **postFix){
 
     char *chaine, *pfin;
+
+    if (!chaineContientUnCaractere(argv1, REGEX_SLASH)){
+        *postFix = argv1;
+        return NULL;
+    }
+
     chaine = chaineCopieJusquaGenerique(argv1, comparateurEstUnCaractereRegex);
     pfin = chaine + (strlen(chaine));
-    for (; pfin != chaine && *pfin != '/'; *pfin-- = '\0');
+    for (; pfin != chaine && *pfin != REGEX_SLASH; *pfin-- = REGEX_ANTISLASH_ZERO);
     
-    for (pfin = argv1 + strlen(argv1); pfin != argv1 && *pfin != '/'; pfin--);
-    *postFix = pfin+1;
+    for (pfin = argv1 + strlen(argv1); pfin != argv1 && *pfin != REGEX_SLASH; pfin--);
+    if (*pfin == REGEX_SLASH) ++pfin;
+    *postFix = pfin;
 
     return chaine;
 }
 
 int regexAvecEnsemble(char *chaine, char *regex, int not){
 
-    if ( *(regex) == ']') return not;
-    if (*regex == '\0' || *(regex+1) == '\0') FATALE_ERREUR("regex inconnu '[' (abandon)\n", 99);
+    if ( *(regex) == REGEX_CROCHET_FERMANT) return not;
+    if (*regex == REGEX_ANTISLASH_ZERO || *(regex+1) == REGEX_ANTISLASH_ZERO) RETURN_ERREUR(REGEX_ERREUR_INCONNUE, ERR);
 
-    if ( *(regex+1) == '-'){
-        if ( *(regex+2) == '\0') FATALE_ERREUR("regex inconnu '[<caractere>-' (abandon)\n", 95);
-        if ( !EST_UN_ALPHADIGIT( *(regex+2) )) FATALE_ERREUR("regex inconnu '[<caractere>-]' (abandon)\n", 94);
-        if (*(regex+2) < *regex) FATALE_ERREUR("plage de regex inconnue prés de '[-]' (abandons)\n", 93);
-        if (*regex < *chaine && *chaine < *(regex+2)){ 
-            if (not) return 0;
-            else return 1;
-
-        } else return regexAvecEnsemble(chaine, regex+3, not);
+    if ( *(regex+1) == REGEX_INTERVAL){
+        if ( *(regex+2) == REGEX_ANTISLASH_ZERO) RETURN_ERREUR(REGEX_ERREUR_INCOMPLETE, ERR);
+        if ( !EST_UN_ALPHADIGIT( *(regex+2) )) RETURN_ERREUR(REGEX_ERREUR_INCOMPLETE, ERR);
+        if (*(regex+2) < *regex) RETURN_ERREUR(REGEX_ERREUR_PLAGE_ANBIGUE, ERR);
+        if (*regex < *chaine && *chaine < *(regex+2)) return !not;
+        else return regexAvecEnsemble(chaine, regex+3, not);
 
     } else {
-        if (*regex == *chaine){ 
-            if (not) return 0;
-            else return 1;
-        } else return regexAvecEnsemble(chaine, regex+1, not);
+        if (*regex == *chaine)return !not;
+        else return regexAvecEnsemble(chaine, regex+1, not);
     }
 
     return 0;
@@ -50,67 +52,84 @@ int regexAvecEnsemble(char *chaine, char *regex, int not){
 
 int regexValidePour(char *chaine, char *regex){
 
-    int not = 0;
+    int not = 0, status;
 
     for (; *chaine && *regex; ){
 
-        if (*regex == '?'){
+        if (*regex == REGEX_QUESTION_MARK){
             ++chaine; ++regex; 
 
-        } else if (*regex == '*'){
-            if ( *(regex+1) == '\0') return 1;
+        } else if (*regex == REGEX_ETOILE_MARK){
+            if ( *(regex+1) == REGEX_ANTISLASH_ZERO) return 1;
             for (++regex ; *chaine && *chaine != *regex; ++chaine);
 
-        } else if (*regex == '['){
-            
-            not = 0;
-            if ( *(regex+1) == '~'){ not = 1; ++regex; }
-            if ( *(regex+1) == ']') FATALE_ERREUR("regexe inconnu '[]' (abandon)\n", 98);
-            ++regex;
-            if (!regexAvecEnsemble(chaine,regex,not)) return 0;
-            for (; *regex && *regex != ']'; ++regex);
+        } else if (*regex == REGEX_CROCHET_OUVRANT){
+            not = 0; ++regex;
+            if ( *regex == REGEX_ANTISLASH_ZERO) RETURN_ERREUR(REGEX_ERREUR_INCOMPLETE, ERR);
+            if ( *regex == REGEX_TILD){ not = 1; ++regex; }
+            if ( *regex == REGEX_CROCHET_FERMANT) RETURN_ERREUR(REGEX_ERREUR_PLAGE_VIDE, ERR);
+
+            status = regexAvecEnsemble(chaine,regex,not);
+            if (status == ERR) return ERR;
+            if (!status) return 0;
+
+            for (; *regex && *regex != REGEX_CROCHET_FERMANT; ++regex);
             ++regex;
             ++chaine;
 
         } else {
             if (*chaine++ != *regex++) return 0;
-
         }
     }
 
-    return *chaine == *regex && *regex == '\0';
+    return *chaine == *regex && *regex == REGEX_ANTISLASH_ZERO;
 }
 
-void executerRegex(char *repertoire, char *regex){
+int executerRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *repertoire, char *regex){
 
     DIR* dir;
-
-    if (repertoire == NULL || regex == NULL || *repertoire == '\0' || *regex == '\0') return;
-    if (!strcmp(regex,"[]") || !strcmp(regex, "[~]")) return;
-    
-    if (repertoire == NULL || *repertoire == '\0' ) dir = ouvrirDir("./");
-    else dir = ouvrirDir(repertoire);
-
     struct dirent* dirr = NULL;
+    int args = *argument, tailleMa = *tailleMax;
+    int status;
+
+    dir = ouvrirDir(repertoire);
 
     for (; (dirr = lireProchainFichier(dir)); ){
 
-        if (regexValidePour(dirr->d_name, regex)){
-            printf("MAtchOK [%s]\n", dirr->d_name);
+        if ( *(dirr->d_name) == '.') continue;
+
+        if (tailleMa-2 < args){
+			char **p = (char**) realloc(*bufferCommandes, sizeof(char*)*(tailleMa+REGEX_REALLOC_EXTENTION));
+			if (p == NULL) REALLOC_ERREUR(126);
+            *bufferCommandes = p; tailleMa += REGEX_REALLOC_EXTENTION;
+		}
+
+        if ( (status=regexValidePour(dirr->d_name, regex))){
+            if (status == ERR) return ERR;
+            (*bufferCommandes)[args++] = fusionner2(repertoire, dirr->d_name);
         }
     }
 
-    closedir(dir);
-}
+    *argument = args; *tailleMax = tailleMa;
+    (*bufferCommandes)[args] = NULL;
 
-int main(int argc, char **argv){
-
-    char *repertoire, *regex;
-    repertoire = retorunePrefexDeChaine(argv[1], &regex);
-    executerRegex(repertoire, regex);
     free(repertoire);
-    exit(0);
-
-    //argv[1] = regex
+    closedir(dir);
+    return 0;
 }
 
+int preformatExecuterRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *expresion){
+    
+    char *repertoire, *regex;
+    if (expresion == NULL || *expresion == REGEX_ANTISLASH_ZERO) return 0;
+    repertoire = retorunePrefexDeChaine(expresion, &regex);
+    
+    if (regex == NULL || *regex == REGEX_ANTISLASH_ZERO) return 0;
+    if (repertoire == NULL || *repertoire == REGEX_ANTISLASH_ZERO ){
+        free(repertoire);
+        repertoire = chaineCopie(getenv("PWD"));
+    }
+    
+    printf("Execute regex sur [%s]avec[%s]\n", repertoire, regex);
+    return executerRegex(bufferCommandes,argument,tailleMax, repertoire, regex);
+}

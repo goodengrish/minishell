@@ -18,8 +18,6 @@
 #define CODE_FIN_LIGNE  ';'
 #define CODE_DOLLAR     '$'
 
-#define FATALSYSERROR(x,y) perror(x), exit(y)
-
 // s est un char*
 #define CARACTERE_SIGNE_OPERATION(s) ( (*s) == '+' || (*s) == '-' || (*s) == '*' || (*s) == '/')
 #define CARACTERE_SEPARATON_ENTRE_COMMANDE(s) ((*s)=='\0' || (*s) == '\n' || (*s) == ' ')

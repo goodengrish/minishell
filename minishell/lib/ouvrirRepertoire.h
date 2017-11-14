@@ -4,6 +4,8 @@
 #include <dirent.h>
 #include <sys/types.h>
 
+#define ODIR_ERREUR_OUVRIRDIRPB "Probléme lors de l'ouverture du fichier (abandon)\n"
+
 DIR* ouvrirDir(const char *path);
 struct dirent* lireProchainFichier(DIR* cdir);
 int cheminExist(char *chemin);

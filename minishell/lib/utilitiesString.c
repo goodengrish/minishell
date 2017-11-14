@@ -3,6 +3,120 @@
 #include "CONST_mytinyshell.h"
 #include "utilitiesString.h"
 
+int chaineContientUnCaractere(char *chaine, char car){
+
+    for (; *chaine && *chaine != car; ++chaine);
+    return *chaine;
+}
+
+int chaineContientUnCaractereGenerique(char *chaine, int(*comparaison)(char c)){
+
+    for (; *chaine && !comparaison(*chaine); ++chaine);
+    return *chaine;
+}
+
+char* chaineCopie(char *source){
+    
+    char *dest = (char*) malloc(sizeof(char)*(strlen(source)+1));
+    
+    strcpy(dest, source);
+    return dest;
+}
+
+char* chaineCopieJusqua(char *source, char seperateur){
+    char *dest;
+    int indice;
+    
+    if (source == NULL || !(*source) ) return NULL;
+        
+    dest = source;
+    for (indice = 0; *dest && *dest != seperateur; ++dest, ++indice);
+    
+    dest = (char*) malloc(sizeof(char)*(indice+1));
+    
+    memset(dest, 0, indice+1);
+    strncpy(dest, source, indice);
+    return dest;
+}
+
+char* chaineCopieJusquaGenerique(char *source, int(*compare)(char c)){
+    
+    char *dest;
+    int indice;
+    
+    if (source == NULL || !(*source) ) return NULL;
+        
+    dest = source;
+    for (indice = 0; *dest && !compare(*dest); ++dest, ++indice);
+    
+    dest = (char*) malloc(sizeof(char)*(indice+1));
+    
+    memset(dest, 0, indice+1);
+    strncpy(dest, source, indice);
+    return dest;
+}
+
+int chaineCopieJusquaGeneriqueAvecTaille(char *source, char **dest, int(*compare)(char c)){
+    
+    *dest = chaineCopieJusquaGenerique(source, compare);
+    return strlen(*dest);
+}
+
+char* fusionner2(const char *mot1, const char *mot2){
+    
+    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+1));
+    
+    strcpy(mot, mot1);
+    strcat(mot, mot2);
+    strcat(mot, "\0");
+    return mot;
+}
+    
+char* fusionner3(const char *mot1, const char *mot2, const char *mot3){
+    
+    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+strlen(mot3)+2));
+    
+    strcpy(mot, mot1);
+    strcat(mot, mot2);
+    strcat(mot, mot3);
+    strcat(mot, "\0");
+    return mot;
+    
+}
+    
+char* fusionner4(const char *mot1, const char *mot2, const char *mot3, const char *mot4){
+        
+    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+strlen(mot3)+strlen(mot4)+3));
+        
+    strcpy(mot, mot1);
+    strcat(mot, mot2);
+    strcat(mot, mot3);
+    strcat(mot, mot4);
+    strcat(mot, "\0");
+    return mot;
+        
+}
+
+void afficherString(const char *c){
+
+    printf("[%s]\n", c);
+}
+
+void afficherChaineJusqua(char *c, char seperateur){
+
+    for (; *c && *c != seperateur; ++c) putchar(*c);
+    putchar('\n');
+}
+
+void afficherTableauDeString(char **cc){
+    
+    for ( ; *cc ; ++cc) printf("[%s]", *cc);
+    printf("[NULL]\n");
+
+}
+
+
+
 char* decalerDansLaMemeChaine(char *depuis, char *vers){
     
     for (; *depuis ; ++depuis, ++vers) *vers = *depuis;
@@ -30,90 +144,6 @@ int comparerJusqua(char *c1, char *c2, char finc1){
     for (; *c1 && *c2 && *c1 == *c2 && *c2 != finc1; ++c1, ++c2);
     return *c1 == finc1 && (*c1 == *c2 || !*c2);
 
-}
-
-char* chaineCopie(char *source){
-
-    char *dest;
-    dest = (char*) malloc(sizeof(char)*(strlen(source)+1));
-
-    strcpy(dest, source);
-    return dest;
-}
-
-char* chaineCopieJusquaGenerique(char *source, int(*compare)(char c)){
-    
-    char *dest;
-    int indice;
-    
-    if (source == NULL || *source == '\0') return NULL;
-        
-    dest = source;
-    for (indice = 0; *dest && !compare(*dest); ++dest, ++indice);
-    
-    dest = (char*) malloc(sizeof(char)*(indice+1));
-    
-    memset(dest, 0, indice+1);
-    strncpy(dest, source, indice);
-    return dest;
-}
-
-int chaineCopieJusquaGeneriqueAvecTaille(char *source, char **dest, int(*compare)(char c)){
-
-    *dest = chaineCopieJusquaGenerique(source, compare);
-    return strlen(*dest);
-}
-
-char* chaineCopieJusqua(char *source, char seperateur){
-
-    char *dest;
-    int indice;
-
-    if (source == NULL || *source == '\0') return NULL;
-    
-    dest = source;
-    for (indice = 0; *dest && *dest != seperateur; ++dest, ++indice);
-
-    dest = (char*) malloc(sizeof(char)*(indice+1));
-
-    memset(dest, 0, indice+1);
-    strncpy(dest, source, indice);
-    return dest;
-}
-
-char* fusionner2(const char *mot1, const char *mot2){
-
-    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+1));
-
-    strcpy(mot, mot1);
-    strcat(mot, mot2);
-    strcat(mot, "\0");
-    return mot;
-}
-
-char* fusionner3(const char *mot1, const char *mot2, const char *mot3){
-
-    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+strlen(mot3)+2));
-
-    strcpy(mot, mot1);
-    strcat(mot, mot2);
-    strcat(mot, mot3);
-    strcat(mot, "\0");
-    return mot;
-
-}
-
-char* fusionner4(const char *mot1, const char *mot2, const char *mot3, const char *mot4){
-    
-    char *mot = (char*) malloc(sizeof(char)*(strlen(mot1)+strlen(mot2)+strlen(mot3)+strlen(mot4)+3));
-    
-    strcpy(mot, mot1);
-    strcat(mot, mot2);
-    strcat(mot, mot3);
-    strcat(mot, mot4);
-    strcat(mot, "\0");
-    return mot;
-    
 }
 
 char **prochaineCommandeApresSeparateur(char **commande, char *seperateur){
@@ -144,7 +174,7 @@ char** ignoreToutLesSeparateur(char **commande, char *seperateur){
 
     for (prochaineCommande = commande; *prochaineCommande ; ++prochaineCommande){
         if (*prochaineCommande == NULL) return NULL;
-        if (/*CARACTERE_SEPARATEUR_DE_COMMANDE(*prochaineCommande) &&*/ strcmp(*prochaineCommande, seperateur)) return prochaineCommande+1;
+        if (strcmp(*prochaineCommande, seperateur)) return prochaineCommande+1;
     }
 
     return NULL;
@@ -156,20 +186,3 @@ void ajouterLaTerminaisonALaPlaceDunEspace(char *commande){
     if (*commande) *commande = '\0';
 }
 
-void afficherString(const char *c){
-
-    printf("[%s]\n", c);
-}
-
-void afficherChaineJusqua(char *c, char seperateur){
-
-    for (; *c && *c != seperateur; ++c) putchar(*c);
-    putchar('\n');
-}
-
-void afficherTableauDeString(char **cc){
-    
-    for ( ; *cc ; ++cc) printf("[%s]", *cc);
-    printf("[NULL]\n");
-
-}

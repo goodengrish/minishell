@@ -3,8 +3,20 @@
 
 #define MEMOIRE_PARTAGER_SEPARATEUR '\n'
 #define TAILLE_MEMOIRE_PARTAGER_DEFAUT 512
+
 #define VAR_LOCAL 1
 #define VAR_GLOBAL 2
+
+#define SET "set"
+#define SETENV "setenv"
+#define UNSET "unset"
+#define UNSETENV "unsetenv"
+
+#define MEMP_ERREUR_KEYT "key_t-1\n"
+#define MEMP_ERREUR_SHMGET "shmget-1\n"
+#define MEMP_ERREUR_SHMAT "shmat-1\n"
+#define MEMP_ERREUR_PASASSEZDESPACE "Espace insufisant dans le zone pour inserer [%s] (abandons)\n"
+
 
 typedef int MemoirePartagerId;
 
