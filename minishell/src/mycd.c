@@ -85,6 +85,11 @@ void sePlacerDansHome(){
 
 }
 
+int executerCD(char *chemin){
+	
+	return !chdir(chemin);
+}
+
 int main(int argc, char** argv){
 
   // vérification du nb d'args pour les appels des fonctions

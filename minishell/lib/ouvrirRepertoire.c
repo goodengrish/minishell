@@ -63,7 +63,6 @@ int processPereEstUnTinyShell(){
     memset(procPereNom, 0, NOMBRE);
     read(fd,procPereNom, NOMBRE);
     
-    printf("Pére du shell courrant [%s]\n", procPereNom);
     if ( !strcmp(procPereNom, "./tinyshell") ) resultat = 1;
 
     close(fd);

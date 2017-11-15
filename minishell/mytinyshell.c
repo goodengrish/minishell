@@ -1,7 +1,7 @@
 #include "src/quivontbien.h"
 
 #if !defined(DEBUG)
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #include "lib/CONST_mytinyshell.h"
@@ -116,151 +116,6 @@ int executeLesCommandes(char **pointerProchaineCommande){
 	return resultatDesCommandes;
 }
 
-char *extraieLaVariable(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, char **car){
-
-	char *resultat = NULL;
-	char sauve;
-	char *caractere = *car, *c = caractere+1;
-	for (; *c && *c != ESPACE && !UN_CARACTERE_SEPARATEUR(*c) && *c != RETOURALALIGNE; ++c);
-	sauve = *c; *c = ANTISLASHZERO;
-
-
-	if (DEBUG){printf("[CONSOLE LOG] Var:[%s]", caractere);}
-
-	if (obtenirLaValeurDuneClef(idLocal, caractere+1, &resultat));
-	else if (obtenirLaValeurDuneClef(idGlobal, caractere+1, &resultat));
-	else resultat = NULL;
-
-	*c = sauve;
-	*car = c;
-
-	if (DEBUG){printf("=[%s]\n",resultat);}
-	return resultat;
-}
-
-char *extraireLeSeparateur(char **caractere){
-
-	char *separateur = (char*) malloc(sizeof(char)*4);
-	char *tmp, *c;
-	memset(separateur, 0, 4);
-
-	c = *caractere;
-	if (*c == '>' && *(c-1) == '2') --c;
-
-	tmp = separateur;
-	for (; *c && UN_CARACTERE_SEPARATEUR(*c) ; ++c){
-		*tmp++ = *c; *c = ANTISLASHZERO;
-	}
-
-	*caractere = c;
-	return separateur;
-}
-
-int compareDecalageAntislash(char caractere){
-
-	return caractere == ANTISLASHZERO || caractere == ESPACE || caractere == RETOURALALIGNE || UN_CARACTERE_SEPARATEUR(caractere);
-}
-
-char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, char *buffer){
-    // ne pas free(buffer) sous paine d'incohérence des elements de sortie
-
-    char **bufferCommandes = (char**) malloc(sizeof(char*)*TAILLE_SORTIE_DEFAUT);
-	char *caractere;
-	
-	int arguments = 0, tailleMax = TAILLE_SORTIE_DEFAUT;
-
-	if (UN_CARACTERE_SEPARATEUR(*buffer)){
-		printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, *buffer);
-		bufferCommandes[0] = NULL;
-		*buffer = RETOURALALIGNE;
-		return bufferCommandes;
-	}
-
-	memset(bufferCommandes,0,TAILLE_SORTIE_DEFAUT);
-	for (caractere = buffer ; *caractere && isspace(*caractere); ++caractere);
-	for (arguments = 0 ; *caractere ; ++arguments){
-
-		if (*caractere == RETOURALALIGNE){*caractere = ANTISLASHZERO; continue;}
-
-		if (*caractere == QUOTE){
-			++caractere;
-			bufferCommandes[arguments] = caractere;
-			for (; *caractere && *caractere != QUOTE; ++caractere);
-			if (*caractere == ANTISLASHZERO){
-				printf(MTSHELL_ERREUR_ANTISLASH_VIDE); 
-				*buffer=RETOURALALIGNE; return bufferCommandes;
-			}
-			*caractere = ANTISLASHZERO; ++caractere; continue;
-		}
-
-		if (arguments+2 == tailleMax){
-			char **p = (char**) realloc(bufferCommandes, sizeof(char*)*(tailleMax+8));
-			if (p == NULL) REALLOC_ERREUR(126);
-			bufferCommandes = p; tailleMax += 8;
-		}
-
-		if (CARACTERE_VARIABLE(caractere)){
-			bufferCommandes[arguments] = extraieLaVariable(idLocal, idGlobal, &caractere);
-		}
-		else if ( (buffer < caractere) && *(caractere-1) != ANTISLASH && UN_CARACTERE_SEPARATEUR(*caractere)){
-			if (CARACTERE_SEPARATEUR_TOTAL(caractere)) 
-				bufferCommandes[arguments] = extraireLeSeparateur(&caractere);
-			else {
-				printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, *caractere);
-				*buffer = RETOURALALIGNE;
-				return bufferCommandes;
-			}
-		}
-		else {
-			char *p;
-			int contientdesAntiSlash = 0,
-			    contientDesRegex = 0,
-			    bloquerRegex = 0;
-
-			bufferCommandes[arguments] = caractere;
-			for (; !compareDecalageAntislash(*caractere) ; ){
-				if (*caractere == ANTISLASH){
-					++contientdesAntiSlash;
-					if (*(caractere+1) == ANTISLASHZERO ||  *(caractere+1) == RETOURALALIGNE){
-						printf(MTSHELL_ERREUR_SYMBOLE_INNATENDU, ANTISLASH);
-						*buffer = RETOURALALIGNE;
-						return bufferCommandes;
-					} else if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) bloquerRegex = 1;
-					++caractere;
-				} 
-				if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) ++contientDesRegex;
-				++caractere;
-			}
-			if (*caractere == ESPACE || *caractere == RETOURALALIGNE) *caractere++ = ANTISLASHZERO;
-
-			//supprimer les '\'
-			if (contientdesAntiSlash){
-				for (p = bufferCommandes[arguments]; *p; ++p){
-					if (*p == ANTISLASH){ *(decalerDansLaMemeChaine(p+1,p)) = ANTISLASHZERO;}				
-				}
-			} else if(!bloquerRegex && contientDesRegex){
-				
-				int anciennePositionArgument = arguments;
-				if (preformatExecuterRegex(&bufferCommandes, &arguments, &tailleMax, bufferCommandes[arguments]) == ERR ||
-				      anciennePositionArgument == arguments){
-
-					printf("Impossible d'acceder à '%s': Aucun fichier au dossier de ce genre\n", bufferCommandes[arguments]);
-					*buffer = '\n';
-					return bufferCommandes;
-				}
-			}
-		}
-
-		for (;*caractere && isspace(*caractere); ++caractere);
-	}
-
-	bufferCommandes[arguments] = NULL;
-
-	if (DEBUG){printf("[CONSOLE LOG] Commande lue:");afficherTableauDeString(bufferCommandes);}
-
-	return bufferCommandes;
-
-}
 
 int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	
@@ -276,7 +131,6 @@ int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	bufferDynamique = buffer;
 	
 	do {
-		//nombreDeCaractereLue = read(fd, bufferDynamique, ALLOCATION_CHAINE_EXTEND_BUFFER);
 		fgets(bufferDynamique, ALLOCATION_CHAINE_EXTEND_BUFFER, stdin);
 		nombreDeCaractereLue = strlen(bufferDynamique);
 	
@@ -300,7 +154,6 @@ int bufferDepuisLentrerStandard(char **bufferDeSortie){
 	
 	memset(buffer+nombreDeCaractereLue, 0, tailleDuBuffer - nombreDeCaractereLue-1);
 	
-	//printf("fd;%d & lu [%s] (%d caractéres), espace total de buffer %d\n", fd, buffer, nombreDeCaractereLue+1, tailleDuBuffer);
 	*bufferDeSortie = buffer;
 	return tailleDuBuffer;
 	
@@ -319,7 +172,8 @@ int executerMinishell(int idLocal, int idGlobal){
 	if (*bufferStdin == RETOURALALIGNE){ free(bufferStdin); return 1;} 
 
 	CommandesParLignes = ChaineVersTabDeChaineParReference(idLocal, idGlobal, bufferStdin);
-	if ( *CommandesParLignes == NULL);
+
+	if ( *CommandesParLignes == NULL || *bufferStdin == RETOURALALIGNE);
 	else if ( !strcmp("exit", *CommandesParLignes)) fini = 1;
 	else {
 		status = executeLesCommandes(CommandesParLignes);

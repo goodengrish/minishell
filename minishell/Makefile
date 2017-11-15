@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -g
 DEBUGFLAG = -DDEBUG=1
 EXECUTABLE_NOM = tinyshell
-OBJECT = mytinyshell.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o
+OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o
 
 all: tinyshell
 
@@ -11,6 +11,9 @@ debug: $(OBJECT)
 
 tinyshell: $(OBJECT)
 	$(CC) $(CFLAGS) $(OBJECT) -o $(EXECUTABLE_NOM)
+
+parseurDeCommande.o : lib/parseurDeCommande.c lib/parseurDeCommande.h
+	$(CC) $(CFAGS) -c lib/parseurDeCommande.c
 
 utilitiesString.o : lib/utilitiesString.c  lib/utilitiesString.h
 	$(CC) $(CFAGS) -c lib/utilitiesString.c

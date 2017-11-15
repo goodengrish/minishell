@@ -99,6 +99,7 @@ int insererUneValeur(MemoirePartagerId id, char *clefvaleur){
         char *plecteur = prochaineChaineApresSeparateur(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
         sauvegarde = chaineCopieJusqua(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
         lecteur = decalerDansLaMemeChaine(plecteur, lecteur);
+        memset(lecteur, 0, plecteur - lecteur);
 
     }
 
@@ -160,7 +161,7 @@ int supprimerClefValeur(MemoirePartagerId id, char *clefvaleur){
     if (lecteur != NULL){
         char *plecteur = prochaineChaineApresSeparateur(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
         lecteur = decalerDansLaMemeChaine(plecteur, lecteur);
-        *lecteur = '\0';
+        memset(lecteur, 0, plecteur - lecteur);
         resultat = 1;
     }
 
@@ -171,7 +172,7 @@ int supprimerClefValeur(MemoirePartagerId id, char *clefvaleur){
 
 void afficherUneTableDeHachage(TableDeHachage *table){
 
-    printf("[%s]\n", table->liste);
+    printf("%s\n", table->liste);
 }
     
 int preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur){

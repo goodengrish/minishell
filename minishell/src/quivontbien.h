@@ -25,6 +25,7 @@
 #define ANTISLASH '\\'
 #define ESPACE ' '
 #define QUOTE '"'
+#define POINTVIRGULE ';'
 
 #define SHELLIDFICHIER "Makefile"
 #define DROITS_DE_BASE 0600

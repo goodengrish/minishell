@@ -42,6 +42,6 @@ CARACTERE_REDIRECTION_A_STDOUTERR(s) || CARACTERE_REDIRECTION_STDIN(s))
 
 #define CARACTERE_SEPARATEUR(s) ( CARACTERE_REDIRECTION(s) || CARACTERE_FINCOMMANDE(s) || CARACTERE_TUBE(s) || CARACTERE_BOOLEAN(s))
 #define CARACTERE_SEPARATEUR_TOTAL(s) (CARACTERE_SEPARATEUR(s) || CARACTERE_SEPARATON_ENTRE_COMMANDE(s) || CARACTERE_SIGNE_OPERATION(s))
-#define UN_CARACTERE_SEPARATEUR(c) ( c == '|' || c == '&' || c == '<' || c == '>' || c == '+')
+#define UN_CARACTERE_SEPARATEUR(c) ( c == '|' || c == '&' || c == '<' || c == '>' || c == '+' || c == ';' )
 
 #endif

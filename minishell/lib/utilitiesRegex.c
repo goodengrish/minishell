@@ -106,7 +106,7 @@ int executerRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *
 
         if ( (status=regexValidePour(dirr->d_name, regex))){
             if (status == ERR) return ERR;
-            (*bufferCommandes)[args++] = fusionner2(repertoire, dirr->d_name);
+            (*bufferCommandes)[args++] = fusionner2(repertoire,dirr->d_name);
         }
     }
 
@@ -127,7 +127,7 @@ int preformatExecuterRegex(char ***bufferCommandes, int *argument, int *tailleMa
     if (regex == NULL || *regex == REGEX_ANTISLASH_ZERO) return 0;
     if (repertoire == NULL || *repertoire == REGEX_ANTISLASH_ZERO ){
         free(repertoire);
-        repertoire = chaineCopie(getenv("PWD"));
+        repertoire = fusionner2(getenv("PWD"), "/");
     }
     
     printf("Execute regex sur [%s]avec[%s]\n", repertoire, regex);
