@@ -1,9 +1,5 @@
 #include "../src/quivontbien.h"
 
-#if !defined(DEBUG)
-#define DEBUG 1
-#endif
-
 #include "CONST_mytinyshell.h"
 #include "redirection.h"
 #include "memoirePartager.h"
@@ -55,10 +51,10 @@ char *extraireUneChaineQuote(char **caractere){
 	char *chaineFormater = *caractere;
 	char *c = *caractere;
 
-	for (; *c && *c != QUOTE; ++c) *c == *(c+1);
-	if (*c == ANTISLASHZERO)return NULL;
+	for (; *c && *c != QUOTE; ++c) *c = *(c+1);
+	if (*c == ANTISLASHZERO) return NULL;
 	
-	*c++ = ANTISLASHZERO;
+	*c = ANTISLASHZERO;
 	*caractere = c;
 	return chaineFormater;
 

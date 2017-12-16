@@ -6,6 +6,16 @@
 struct sembuf SEM_MONTER = {0,1,0};
 struct sembuf SEM_DECENDRE = {0,-1,0};
 
+void V(int s){
+
+    semop(s, &SEM_MONTER, 1);
+}
+
+void P(int s){
+
+    semop(s, &SEM_DECENDRE, 1);
+}
+
 int estDansLeFormatClefValeur(char *clefvaleur){
 
     static const char EGAL = '=';
@@ -26,38 +36,36 @@ key_t genererUneClef(char *unChemin, int unEntier){
 
 void nettoieUneZoneDeMemoirePartager(MemoirePartagerId id){
 
-    TableDeHachage *zone = (TableDeHachage*) attacherMemoirePartager(id);
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
 
-    memset(zone,0,sizeof(TableDeHachage));
+    memset(zone,0,sizeof(ZoneMp));
+    memset(zone->stouage, -1, TAILLE_MEMOIRE_PARTAGER_DEFAUT);
     detacherMemoirePartager(zone);
 }
 
 void detruireLesSemaphores(MemoirePartagerId id){
 
-    TableDeHachage *zone = (TableDeHachage*) attacherMemoirePartager(id);
-    semctl(zone->semaphore_ecriture, 0, IPC_RMID);
-    semctl(zone->semaphore_lecture , 0, IPC_RMID);
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    semctl(zone->acces, 0, IPC_RMID);
     detacherMemoirePartager(zone);
 }
 
 MemoirePartagerId creeEspaceDeMemoirePartager(key_t clef, int creeNouveaux){
 
     MemoirePartagerId id;
-    TableDeHachage *table;
+    ZoneMp *table;
 
-    if (creeNouveaux) id = shmget(clef, sizeof(TableDeHachage), IPC_CREAT | 0600);
+    if (creeNouveaux) id = shmget(clef, sizeof(ZoneMp), IPC_CREAT | 0600);
     else {
-        id = shmget(clef, sizeof(TableDeHachage), 0600); 
+        id = shmget(clef, sizeof(ZoneMp), 0600); 
         return id; 
     }
 
     if (id == ERR) FATALE_ERREUR(MEMP_ERREUR_SHMGET, errno);
     nettoieUneZoneDeMemoirePartager(id);
-    table = (TableDeHachage*) attacherMemoirePartager(id);
-    table->semaphore_lecture = semget(IPC_PRIVATE, 1, 0600);
-    table->semaphore_ecriture =semget(IPC_PRIVATE, 1, 0600);
-    semctl(table->semaphore_ecriture, SETVAL, 1);
-    semctl(table->semaphore_lecture , SETVAL, 1);
+    table = (ZoneMp*) attacherMemoirePartager(id);
+    table->acces = semget(IPC_PRIVATE, 1, 0600);
+    semctl(table->acces, SETVAL, 1);
     detacherMemoirePartager(table);
     return id;
 
@@ -72,7 +80,7 @@ void* attacherMemoirePartager(MemoirePartagerId id){
     return zone;
 }
 
-void detacherMemoirePartager(TableDeHachage *zone){
+void detacherMemoirePartager(ZoneMp *zone){
 
     shmdt(zone);
 }
@@ -83,109 +91,128 @@ void detruireMemoirePartager(MemoirePartagerId id){
     shmctl(id, IPC_RMID, 0);
 }
 
-int insererUneValeur(MemoirePartagerId id, char *clefvaleur){
-    
-    char *sauvegarde, *lecteur;
-    int resultat = 0;
-    TableDeHachage *table;
-    
-    table = (TableDeHachage*) attacherMemoirePartager(id);
-    semop(table->semaphore_ecriture, &SEM_DECENDRE, 1);
-        
-    lecteur = obtenirLadresseDuneClefvaleur(table->liste, clefvaleur);
+int emplacementvide(char *buffer, int max){
 
-    sauvegarde = NULL;
-    if (lecteur != NULL){
-        char *plecteur = prochaineChaineApresSeparateur(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
-        sauvegarde = chaineCopieJusqua(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
-        lecteur = decalerDansLaMemeChaine(plecteur, lecteur);
-        memset(lecteur, 0, plecteur - lecteur);
+    int i=0;
+    for (; i<max && !(buffer[i]); ++i);
+    return i == max;
+}
 
-    }
+int nouvelleEntrer(int *stouage, int empl){
 
-    if (TAILLE_MEMOIRE_PARTAGER_DEFAUT -1 <= (lecteur - table->liste) + strlen(clefvaleur)){
-        printf(MEMP_ERREUR_PASASSEZDESPACE, clefvaleur);
+    for (; *stouage != -1; ++stouage);
+    *stouage = empl; *(stouage+1) = -1;
+    return 1;
+}
 
-        if (sauvegarde != NULL) {
-            strcpy(lecteur, sauvegarde);
-            strcat(lecteur, "\n");
+int sub(int *stouage, char *buffer, int bg, int bd, int tsc, char *clefval, int cvlen){
+
+    if (tsc < cvlen+1) return 0;
+
+    if ( (tsc>>1) < cvlen+1 ){
+
+        if (emplacementvide(buffer+bg, tsc) ){
+            nouvelleEntrer(stouage, bg);
+            strncpy(buffer+bg, clefval, cvlen);
+            return 1;
         }
+
+        else if (emplacementvide(buffer+bd, tsc) ){
+            nouvelleEntrer(stouage, bd);
+            strncpy(buffer+bd, clefval, cvlen);
+            return 1;
+        }
+
+        else return 0;
+    }
+
+
+    tsc >>=1;
+    return sub(stouage, buffer, bg, bd-tsc, tsc, clefval, cvlen) ||
+           sub(stouage, buffer, bd, bd+tsc, tsc, clefval, cvlen);
+}
+
+int obtenirp(char *buffer, int *stouage, char *clef, int cleflen, int **empl){
+
+    *empl = NULL;
+    for (; *stouage != -1; ++stouage)
+        if ( !strncmp( (buffer+(*stouage) ), clef, cleflen) && buffer[(*stouage)+cleflen] == '=')
+             *empl = stouage; return 1;
+    
+    
+    return 0;
+}
+
+int supprimer(char *buffer, int *stouage, char *clef){
+    
+    int clen = strlen(clef);
+    int *empl = NULL;
+
+    if (obtenirp(buffer, stouage, clef, clen, &empl) && empl){
+
+        for (buffer += *empl; *buffer; ++buffer) *buffer = '\0';
         
-    }
-    else {
-        strcpy(lecteur, clefvaleur);
-        strcat(lecteur, "\n");
-        resultat = 1;
-    }
-    
-    free(sauvegarde);
-    
-    semop(table->semaphore_ecriture, &SEM_MONTER, 1);
-    detacherMemoirePartager(table);
-    
-    return resultat;
-}
-
-char* valeurDuneClef(char *clefvaleur){
-
-    for (; *clefvaleur && *clefvaleur != '='; ++clefvaleur);
-    return ++clefvaleur;
-}
-
-char *obtenirLadresseDuneClefvaleur(char *chaine, char *clefvaleur){
-
-    for (; *chaine ; chaine = prochaineChaineApresSeparateur(chaine, MEMOIRE_PARTAGER_SEPARATEUR)){
-        if ( comparerJusqua(chaine,clefvaleur, '=') ) return chaine;
+        for (; *(empl+1) != -1; empl++) *empl = *(empl+1);
+        *empl = -1;
+        return 1;
     }
 
-    return chaine;
+    return 0;
 }
 
-char* obtenirLaValeur(TableDeHachage *table, char *clefvaleur){
+int inserer(char *buffer, int *stouage, char *clefval){
     
-    char *p = obtenirLadresseDuneClefvaleur(table->liste, clefvaleur);
-    if ( !(*p) ) return NULL;
-    return chaineCopieJusqua(valeurDuneClef(p), MEMOIRE_PARTAGER_SEPARATEUR);
+    char *c = clefval;
+    for (; *c != '='; ++c);
+    *c = '\0';
+
+    supprimer(buffer, stouage, clefval); *c = '=';
+    return sub(stouage, buffer, 0, TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1,
+              TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1, clefval, strlen(clefval));
 }
 
-int supprimerClefValeur(MemoirePartagerId id, char *clefvaleur){
+int obetnir(char *buffer, int *stouage, char *clef, char **resultat){
 
-    char *lecteur;
-    int resultat = 0;
-    TableDeHachage *table;
-    
-    table = (TableDeHachage*) attacherMemoirePartager(id);
-    semop(table->semaphore_ecriture, &SEM_DECENDRE, 1);
-        
-    lecteur = obtenirLadresseDuneClefvaleur(table->liste, clefvaleur);
-    if (lecteur != NULL){
-        char *plecteur = prochaineChaineApresSeparateur(lecteur, MEMOIRE_PARTAGER_SEPARATEUR);
-        lecteur = decalerDansLaMemeChaine(plecteur, lecteur);
-        memset(lecteur, 0, plecteur - lecteur);
-        resultat = 1;
-    }
+    int clen = strlen(clef);
+    int *empl = NULL;
 
-    semop(table->semaphore_ecriture, &SEM_MONTER, 1);
-    detacherMemoirePartager(table);
-    return resultat;
+    *resultat = NULL;
+    if (obtenirp(buffer, stouage, clef, clen, &empl) && empl) *resultat = strdup(buffer+(*empl)+clen+1);
+    return *resultat != NULL;
 }
 
-void afficherUneTableDeHachage(TableDeHachage *table){
+void afficher(char *buffer, int *stouage){
 
-    printf("%s\n", table->liste);
+    for (; *stouage != -1 ; ++stouage ) printf("%s\n", buffer+(*stouage));
+
+    putchar('\n');
+    return ;
 }
     
 int preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur){
+
+    int status = 0;
     
     if ( !estDansLeFormatClefValeur(clefvaleur) ) return 0;
-    return insererUneValeur(id,clefvaleur);
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    P(zone->acces);
+    status = inserer(zone->buffer,zone->stouage, clefvaleur);
+    V(zone->acces);
+    detacherMemoirePartager(zone);
+    return status;
     
 }
 
 int preformatSupprimerUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur){
     
-    if (clefvaleur == NULL) return 0;
-    return supprimerClefValeur(id,clefvaleur);
+    int status = 0;
+    
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    P(zone->acces);
+    status = supprimer(zone->buffer,zone->stouage, clefvaleur);
+    V(zone->acces);
+    detacherMemoirePartager(zone);
+    return status;
 }
 
 int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemble){
@@ -196,28 +223,28 @@ int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemb
 
 int preformatAfficherMemoirePartager(MemoirePartagerId id){
 
-    TableDeHachage *table;
-    table = (TableDeHachage*) attacherMemoirePartager(id);
-    afficherUneTableDeHachage(table);
-    detacherMemoirePartager(table);
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    P(zone->acces);
+    afficher(zone->buffer,zone->stouage);
+    V(zone->acces);
+    detacherMemoirePartager(zone);
     return 1;
 
 }
 
-// par copy  RET 0 SI non trouvé, 1 si trouvé
 int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat){
     
-    TableDeHachage *table;
+    int status = 0;
     
-    *resultat = NULL;
-    table = (TableDeHachage*) attacherMemoirePartager(id);
-    *resultat = obtenirLaValeur(table, clef);
-    detacherMemoirePartager(table);
-    return *resultat != NULL;
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    P(zone->acces);
+    status = obetnir(zone->buffer,zone->stouage, clef, resultat);
+    V(zone->acces);
+    detacherMemoirePartager(zone);
+    return status;
     
 }
 
-// non générique enfin si on quitte les set/setenv
 int executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes){
     
     int res = IGNORE_COMMANDE;
@@ -250,10 +277,14 @@ int executerCommandOperationSurLesVariables(int espace , char **CommandesParLign
         }
     }
     else if (!strcmp(enlever, *CommandesParLignes)){
+
+        if (*(CommandesParLignes+1) == NULL){
+            printf("Commande incompléte (utiliser %s <variable>)\n", enlever); return 0;
+        }
     
         res = preformatSupprimerUneValeurMemoirePartager(id,*(CommandesParLignes+1));
         switch (res){
-            case(0): printf("Commande incompléte (utiliser %s <variable>)\n", enlever); break;
+            case(0): printf("Element non trouvé\n"); break;
             case(-1): printf("la variable n'existe pas (abandons)\n"); break;
         }
     }

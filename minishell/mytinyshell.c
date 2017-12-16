@@ -1,21 +1,70 @@
 #include "src/quivontbien.h"
 
-#if !defined(DEBUG)
-#define DEBUG 1
-#endif
-
 #include "lib/CONST_mytinyshell.h"
 #include "lib/ouvrirRepertoire.h"
 #include "lib/utilitiesString.h"
 #include "lib/utilitiesRegex.h"
 #include "lib/memoirePartager.h"
 #include "lib/redirection.h"
+#include "lib/status.h"
+#include "lib/mesJobs.h"
 #include "mytinyshell.h"
+
+int shellId=0;
+int CODE_DERNIERE_ARRET_OK = 0;
+int CODE_DERNIERE_PROCESSUS = 0;
+char *NOM_DERNIER_PROCESSUS = NULL;
+MemoirePartagerId idLocal, idGlobal;
+
+void quitterShellProprement(){
+
+	nettoieUneZoneDeMemoirePartager(idLocal);
+	detruireMemoirePartager(idLocal);
+
+	if (DEBUG){printf("[CONSOLE LOG] close ====== %d ======\n", shellId);}
+	if (!shellId){
+		nettoieUneZoneDeMemoirePartager(idGlobal);
+		detruireMemoirePartager(idGlobal);
+	}
+}
+
+void monSigIntSousProcces(){
+
+	exit(SIGINT);
+}
+
+void monSigInt(){
+
+	char c;
+	printf("\nVoulez vous sortir du tinyshell et tuer de nombreux fils innoncents? (y/n): ");
+	for (; (c = getchar()) ; ){
+		if (c == 'n') return;
+		else if (c == 'y'){kill(0, getpgrp()); exit(SIGINT);}
+	}
+
+	for (; (c = getchar()) != EOF; );
+
+}
+
+int executerCommandeExit(char **uneCommande){
+
+	if ( !strcmp(*uneCommande,"exit") && *(uneCommande+1) == NULL){
+		quitterShellProprement();
+		exit(0);	
+	} else  return -2;
+}
+
+char *derniereSousCommande(char **uneCommande){
+
+	for (; *(uneCommande+1); uneCommande++);
+	return *uneCommande;
+}
 
 int executeProgramme(char **uneCommande){
 
 	pid_t pid;
 	int status;
+	int commandeBackground = 0;
 
 	if (*uneCommande == NULL || !(**uneCommande) ) return 0;
 
@@ -23,20 +72,56 @@ int executeProgramme(char **uneCommande){
 	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
 	status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande);
 	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
+	status = executerCommandStatus(uneCommande);
+	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
+	status = executerCommandeExit(uneCommande);
+	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
+
+
+	if ( !strcmp(derniereSousCommande(uneCommande),"&") ){
+
+		commandeBackground = 1;
+		pid = fork();
+		TESTFORKOK(pid);
+
+		if (pid) return 0;
+			
+	}
 
 	pid = fork();
 	TESTFORKOK(pid);
+
+	CODE_DERNIERE_ARRET_OK = 1;
+	CODE_DERNIERE_PROCESSUS = 127;
+	free(NOM_DERNIER_PROCESSUS);
+	NOM_DERNIER_PROCESSUS = NULL;
 	
 	if (!pid){
 
+		signal(SIGINT, monSigIntSousProcces);
+		signal(SIGTSTP, mettreEnPauseUnProcessus);
+
 		executeRedirectionSiBesoin(uneCommande);
+
+		if (commandeBackground){
+			printf("[0] %d\n", getpid());
+		}
 
 		execvp(*uneCommande, uneCommande);
 		_exit(127);
 	
 	} else {
 		wait(&status);
-		return (WIFEXITED(status))? WEXITSTATUS(status) : ERR;
+		CODE_DERNIERE_ARRET_OK = (WIFEXITED(status))? 1 : 0;
+		CODE_DERNIERE_PROCESSUS = (CODE_DERNIERE_ARRET_OK)? WEXITSTATUS(status) : ERR;
+		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
+	
+		if (commandeBackground)
+			printf("%s (jobs=[%d], pid=%d) terminé avec status %d\n", 
+			    NOM_DERNIER_PROCESSUS, 0, 0, CODE_DERNIERE_PROCESSUS);
+		
+
+		return CODE_DERNIERE_PROCESSUS;
 	
 	}
 
@@ -191,12 +276,15 @@ int executerMinishell(int idLocal, int idGlobal){
 }
 
 int main(int argc, char** argv, char **envp){
-
-	int shellId=0;
-    MemoirePartagerId idLocal, idGlobal;
 	
+
+	signal(SIGINT, monSigInt);
+	signal(SIGTSTP, NULL);
+	//atexit(quitterShellProprement);
+
 	shellId = processPereEstUnTinyShell();
-	if (DEBUG){printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d\n", shellId, getpid(), getppid());}
+	if (DEBUG){printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d grop%d\n", 
+	                shellId, getpid(), getppid(), getpgrp());}
 	idLocal = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, getpid()), 1);
 
 	if (!shellId){
@@ -206,15 +294,6 @@ int main(int argc, char** argv, char **envp){
 	} else idGlobal = creeEspaceDeMemoirePartager(genererUneClef(SHELLIDFICHIER, 1), 0);
 	
 	for (; executerMinishell(idLocal, idGlobal) ;);
-
-	nettoieUneZoneDeMemoirePartager(idLocal);
-	detruireMemoirePartager(idLocal);
-
-	if (DEBUG){printf("[CONSOLE LOG] close ====== %d ======\n", shellId);}
-	if (!shellId){
-		nettoieUneZoneDeMemoirePartager(idGlobal);
-		detruireMemoirePartager(idGlobal);
-	}
 
 	exit(0);
 }

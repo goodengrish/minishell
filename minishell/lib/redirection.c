@@ -25,7 +25,6 @@ char** pointeurProchainSeparateur(char **commande){
 int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
 
     char **anull;
-    int fd_fichier_ecraser,fd_fichier_ajouter,fd_fichier_lire;
     int fd_fichier, doubleDup = 0;
 
     if ( CARACTERE_REDIRECTION_O_STDOUT(redirection)){

@@ -5,29 +5,51 @@
 #include "ouvrirRepertoire.h"
 #include "utilitiesRegex.h"
 
+#define debug 0
+
 int comparateurEstUnCaractereRegex(char c){
 
     return EST_UNE_CARACTERE_REGEX(c);
 }
 
-char *retorunePrefexDeChaine(char *argv1, char **postFix){
+char *placerAntiSlash(char *chaine){
 
-    char *chaine, *pfin;
+  int i;
+  char *c = chaine, *p;
+  for (i=0; *c; ++c) if (comparateurEstUnCaractereRegex(*c)) ++i;
 
-    if (!chaineContientUnCaractere(argv1, REGEX_SLASH)){
-        *postFix = argv1;
-        return NULL;
+  c = (char*) calloc(strlen(chaine)+i+1, sizeof(char));
+  for (p=c; *chaine; ++chaine, ++p){
+    if ( comparateurEstUnCaractereRegex(*chaine) ){ *p = '\\'; ++p;}
+    *p = *chaine;
+  }
+
+  return c;
+}
+
+int retorunePrefexDeChaine(char *argv1, char **rep, char **cregex, char **finregex){
+
+    char *chaine = argv1, *ccregex;
+    *rep = argv1; *cregex = NULL; *finregex = NULL;
+
+    for (; *chaine ; ++chaine){
+      if (*chaine == '\\') ++chaine;
+      if (comparateurEstUnCaractereRegex(*chaine)) break;
     }
+    if ( !(*chaine) ) return 1;
 
-    chaine = chaineCopieJusquaGenerique(argv1, comparateurEstUnCaractereRegex);
-    pfin = chaine + (strlen(chaine));
-    for (; pfin != chaine && *pfin != REGEX_SLASH; *pfin-- = REGEX_ANTISLASH_ZERO);
-    
-    for (pfin = argv1 + strlen(argv1); pfin != argv1 && *pfin != REGEX_SLASH; pfin--);
-    if (*pfin == REGEX_SLASH) ++pfin;
-    *postFix = pfin;
+    for (; chaine != argv1; --chaine) if (*chaine == '/') break;
+    if (chaine == argv1) *rep = strdup(getenv("PWD"));
+    else {*chaine = '\0'; ++chaine;}
 
-    return chaine;
+    for (ccregex = chaine; *ccregex; ++ccregex) if (*ccregex == '/') break;
+    *cregex = chaine;
+    if ( !(*ccregex)) return 1;
+
+    *ccregex = '\0';
+    *finregex = ccregex+1;
+
+    return 0;
 }
 
 int regexAvecEnsemble(char *chaine, char *regex, int not){
@@ -57,7 +79,7 @@ int regexValidePour(char *chaine, char *regex){
     for (; *chaine && *regex; ){
 
         if (*regex == REGEX_QUESTION_MARK){
-            ++chaine; ++regex; 
+            ++chaine; ++regex;
 
         } else if (*regex == REGEX_ETOILE_MARK){
             if ( *(regex+1) == REGEX_ANTISLASH_ZERO) return 1;
@@ -85,51 +107,126 @@ int regexValidePour(char *chaine, char *regex){
     return *chaine == *regex && *regex == REGEX_ANTISLASH_ZERO;
 }
 
-int executerRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *repertoire, char *regex){
+int executerRegex(char **listeRep, char ***resultat){
 
     DIR* dir;
     struct dirent* dirr = NULL;
-    int args = *argument, tailleMa = *tailleMax;
-    int status;
 
-    dir = ouvrirDir(repertoire);
+    int fini = 0;
+    int tailleMax = 10, indice = 0;
+    char *repertoire, *cregex, *finregex;
+    char **res = *resultat;
 
-    for (; (dirr = lireProchainFichier(dir)); ){
+    res = (char**) calloc(tailleMax, sizeof(char*));
 
-        if ( *(dirr->d_name) == '.') continue;
+    for (; *listeRep ; ++listeRep){
 
-        if (tailleMa-2 < args){
-			char **p = (char**) realloc(*bufferCommandes, sizeof(char*)*(tailleMa+REGEX_REALLOC_EXTENTION));
-			if (p == NULL) REALLOC_ERREUR(126);
-            *bufferCommandes = p; tailleMa += REGEX_REALLOC_EXTENTION;
-		}
+        retorunePrefexDeChaine(*listeRep, &repertoire, &cregex, &finregex);
 
-        if ( (status=regexValidePour(dirr->d_name, regex))){
-            if (status == ERR) return ERR;
-            (*bufferCommandes)[args++] = fusionner2(repertoire,dirr->d_name);
+        if (debug) printf("Execute regex sur [%s]avec[%s] [%s]\n", repertoire, cregex, finregex);
+
+        if (cregex == NULL) continue;
+        fini = 1;
+
+        dir = opendir(repertoire);
+        if (dir == NULL) continue;
+
+        for (; (dirr = lireProchainFichier(dir)); ){
+
+            char *c;
+
+            if ( *(dirr->d_name) == '.') continue;
+
+            if (indice+2 == tailleMax){
+                char **p = (char**) realloc(res, sizeof(char*)*(tailleMax+REGEX_REALLOC_EXTENTION));
+                if (p == NULL) REALLOC_ERREUR(126);
+                res = p; tailleMax += REGEX_REALLOC_EXTENTION;
+            }
+
+            c = placerAntiSlash(dirr->d_name);
+            if (debug )printf("Testfor: [%35s][%35s] ", c, cregex);
+
+            if ( regexValidePour(c, cregex) ){
+                if (debug) printf("  ok\n");
+                if (dirr->d_type == DT_DIR){
+                    char *r = fusionner2(repertoire, "/");
+                    res[indice++] = fusionner4(r, c, "/", finregex);
+                    free(r);
+                } else if (finregex == NULL || *finregex == '\0')
+                    res[indice++] = fusionner3(repertoire, "/", c);
+            } else if (debug) printf(" nok\n");
+
+            free(c);
         }
+
+        closedir(dir);
+
     }
 
-    *argument = args; *tailleMax = tailleMa;
-    (*bufferCommandes)[args] = NULL;
+    res[indice] = NULL;
 
-    free(repertoire);
-    closedir(dir);
-    return 0;
+    *resultat = res;
+
+    return !fini;
 }
 
 int preformatExecuterRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *expresion){
-    
-    char *repertoire, *regex;
+
+    char **c;
+    char **res1 = NULL, **res = NULL;
+    char **commande = *bufferCommandes;
+    int a = *argument, t = *tailleMax;
+
     if (expresion == NULL || *expresion == REGEX_ANTISLASH_ZERO) return 0;
-    repertoire = retorunePrefexDeChaine(expresion, &regex);
-    
-    if (regex == NULL || *regex == REGEX_ANTISLASH_ZERO) return 0;
-    if (repertoire == NULL || *repertoire == REGEX_ANTISLASH_ZERO ){
-        free(repertoire);
-        repertoire = fusionner2(getenv("PWD"), "/");
+
+    res = (char**) calloc(2,sizeof(char*));
+    res[0] = strdup(expresion);
+
+    for (; !executerRegex(res, &res1); ){
+        free(res);
+        res = res1;
+        res1 = NULL;
     }
-    
-    printf("Execute regex sur [%s]avec[%s]\n", repertoire, regex);
-    return executerRegex(bufferCommandes,argument,tailleMax, repertoire, regex);
+
+    for (c=res; *c; ++c){
+
+       if ( t <= a+2 ){
+            char **cc = (char**) realloc(commande, sizeof(char*)*(t+REGEX_REALLOC_EXTENTION));
+            if (cc == NULL) REALLOC_ERREUR(126);
+
+            memset(cc+a,0,t-a);
+            commande = cc; t+=REGEX_REALLOC_EXTENTION;
+        }
+
+        commande[a++] = *c;
+
+    } free(res);
+
+    commande[a] = NULL;
+
+    *bufferCommandes = commande;
+    *tailleMax = t;
+    *argument = a;
+
+    return 0;
+
 }
+
+/*
+int main(int argc, char **argv){
+
+    int argument = 0, tailleMax = 2;
+    char **buffer = (char**) calloc(tailleMax, sizeof(char*));
+
+    if (!preformatExecuterRegex(&buffer, &argument, &tailleMax, argv[1])){
+
+        char **c;
+        for (c=buffer; *c; ++c){ printf("[%s]\n", *c); free(*c); }
+        putchar('\n');
+    }
+
+    free(buffer);
+
+    exit(0);
+}
+*/

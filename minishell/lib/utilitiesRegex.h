@@ -23,10 +23,6 @@
 #define EST_UN_ALPHADIGIT(c) (isalpha(c) || isdigit(c))
 
 int comparateurEstUnCaractereRegex(char c);
-char *retorunePrefexDeChaine(char *argv1, char **postFix);
-int regexAvecEnsemble(char *chaine, char *regex, int not);
-int regexValidePour(char *chaine, char *regex);
-int executerRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *repertoire, char *regex);
 int preformatExecuterRegex(char ***bufferCommandes, int *argument, int *tailleMax, char *expresion);
 
 #endif

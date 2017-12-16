@@ -19,7 +19,7 @@
 #define CODE_DOLLAR     '$'
 
 // s est un char*
-#define CARACTERE_SIGNE_OPERATION(s) ( (*s) == '+' || (*s) == '-' || (*s) == '*' || (*s) == '/')
+#define CARACTERE_SIGNE_OPERATION(s) ( (*s) == '+' || (*s) == '-' )
 #define CARACTERE_SEPARATON_ENTRE_COMMANDE(s) ((*s)=='\0' || (*s) == '\n' || (*s) == ' ')
 #define CARACTERE_BOOLEAN_OU(s) ((*s) == '|' && *(s+1) == '|' && *(s+2) != '|')
 #define CARACTERE_BOOLEAN_ET(s) ((*s) == '&' && *(s+1) == '&' && *(s+2) != '&')
@@ -27,7 +27,9 @@
 #define CARACTERE_FINCOMMANDE(s) (*(s) == ';' )
 #define CARACTERE_TUBE(s) (*(s) == '|' && *(s+1) != '|')
 #define CARACTERE_VARIABLE(s) (*(s) == '$')
-#define CARACTERE_SEPARATEUR_DE_COMMANDE(s) (CARACTERE_TUBE(s) || CARACTERE_FINCOMMANDE(s) || CARACTERE_BOOLEAN(s) )
+#define CARACTERE_BACKGROUND(s) (*(s) == '&' && *(s+1) != '&')
+#define CARACTERE_SEPARATEUR_DE_COMMANDE(s) (CARACTERE_TUBE(s) ||\
+CARACTERE_FINCOMMANDE(s) || CARACTERE_BOOLEAN(s) )
 
 #define CARACTERE_REDIRECTION_O_STDOUT(s) ( (*(s)) == '>' && (*(s+1)) != '>')
 #define CARACTERE_REDIRECTION_A_STDOUT(s) ( (*s) == '>' && *(s+1) == '>' && *(s+2) != '>')
@@ -40,8 +42,16 @@
 CARACTERE_REDIRECTION_O_STDERR(s) || CARACTERE_REDIRECTION_A_STDERR(s) || CARACTERE_REDIRECTION_O_STDOUTERR(s) ||\
 CARACTERE_REDIRECTION_A_STDOUTERR(s) || CARACTERE_REDIRECTION_STDIN(s))
 
-#define CARACTERE_SEPARATEUR(s) ( CARACTERE_REDIRECTION(s) || CARACTERE_FINCOMMANDE(s) || CARACTERE_TUBE(s) || CARACTERE_BOOLEAN(s))
-#define CARACTERE_SEPARATEUR_TOTAL(s) (CARACTERE_SEPARATEUR(s) || CARACTERE_SEPARATON_ENTRE_COMMANDE(s) || CARACTERE_SIGNE_OPERATION(s))
+#define CARACTERE_SEPARATEUR(s) ( CARACTERE_REDIRECTION(s) || CARACTERE_FINCOMMANDE(s) ||\
+ CARACTERE_TUBE(s) || CARACTERE_BOOLEAN(s) ||  CARACTERE_BACKGROUND(s))
+
+#define CARACTERE_SEPARATEUR_TOTAL(s) (CARACTERE_SEPARATEUR(s) ||\
+ CARACTERE_SEPARATON_ENTRE_COMMANDE(s) || CARACTERE_SIGNE_OPERATION(s))
+
 #define UN_CARACTERE_SEPARATEUR(c) ( c == '|' || c == '&' || c == '<' || c == '>' || c == '+' || c == ';' )
+
+extern int CODE_DERNIERE_PROCESSUS;
+extern int CODE_DERNIERE_ARRET_OK;
+extern char *NOM_DERNIER_PROCESSUS;
 
 #endif

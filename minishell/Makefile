@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -g
 DEBUGFLAG = -DDEBUG=1
 EXECUTABLE_NOM = tinyshell
-OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o
+OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o status.o mesJobs.o
 
 all: tinyshell
 
@@ -13,22 +13,28 @@ tinyshell: $(OBJECT)
 	$(CC) $(CFLAGS) $(OBJECT) -o $(EXECUTABLE_NOM)
 
 parseurDeCommande.o : lib/parseurDeCommande.c lib/parseurDeCommande.h
-	$(CC) $(CFAGS) -c lib/parseurDeCommande.c
+	$(CC) $(CFLAGS) -c lib/parseurDeCommande.c
 
 utilitiesString.o : lib/utilitiesString.c  lib/utilitiesString.h
-	$(CC) $(CFAGS) -c lib/utilitiesString.c
+	$(CC) $(CFLAGS) -c lib/utilitiesString.c
 
 utilitiesRegex.o : lib/utilitiesRegex.c  lib/utilitiesRegex.h
-	$(CC) $(CFAGS) -c lib/utilitiesRegex.c
+	$(CC) $(CFLAGS) -c lib/utilitiesRegex.c
 
 ouvrirRepertoire.o : lib/ouvrirRepertoire.c lib/ouvrirRepertoire.h
-	$(CC) $(CFAGS) -c lib/ouvrirRepertoire.c
+	$(CC) $(CFLAGS) -c lib/ouvrirRepertoire.c
 
 memoirePartager.o : lib/memoirePartager.c lib/memoirePartager.h
-	$(CC) $(CFAGS) -c lib/memoirePartager.c
+	$(CC) $(CFLAGS) -c lib/memoirePartager.c
 
 redirection.o : lib/redirection.c lib/redirection.h
-	$(CC) $(CFAGS) -c lib/redirection.c
+	$(CC) $(CFLAGS) -c lib/redirection.c
+
+status.o : lib/status.c lib/status.h
+	$(CC) $(CFLAGS) -c lib/status.c
+
+mesJobs.o : lib/mesJobs.c lib/mesJobs.h
+	$(CC) $(CFLAGS) -c lib/mesJobs.c
 
 zip: clean save
 	zip project SAVE/* SAVE/*/*
