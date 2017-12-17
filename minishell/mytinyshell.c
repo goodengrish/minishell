@@ -50,7 +50,8 @@ int executerCommandeExit(char **uneCommande){
 
 	if ( !strcmp(*uneCommande,"exit") && *(uneCommande+1) == NULL){
 		quitterShellProprement();
-		exit(0);	
+		kill(getpid(), SIGTERM);
+		return 1;	
 	} else  return -2;
 }
 
@@ -116,10 +117,11 @@ int executeProgramme(char **uneCommande){
 		CODE_DERNIERE_PROCESSUS = (CODE_DERNIERE_ARRET_OK)? WEXITSTATUS(status) : ERR;
 		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
 	
-		if (commandeBackground)
+		if (commandeBackground){
 			printf("%s (jobs=[%d], pid=%d) terminé avec status %d\n", 
-			    NOM_DERNIER_PROCESSUS, 0, 0, CODE_DERNIERE_PROCESSUS);
-		
+				NOM_DERNIER_PROCESSUS, 0, 0, CODE_DERNIERE_PROCESSUS);
+			kill(getpid(), SIGTERM);
+		}
 
 		return CODE_DERNIERE_PROCESSUS;
 	

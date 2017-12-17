@@ -42,12 +42,10 @@ zip: clean save
 save:
 	mkdir SAVE 2> /dev/null || true
 	mkdir SAVE/src SAVE/lib 2> /dev/null || true
-	mkdir SAVE/bin SAVE/bin 2> /dev/null || true
 	cp -f Makefile ./SAVE
 	cp -f *.* ./SAVE
 	cp -f lib/* SAVE/lib
 	cp -f src/* SAVE/src
-	cp -f bin/* SAVE/bin
 
 clean:
 	rm -rf *.o 2> /dev/null || true

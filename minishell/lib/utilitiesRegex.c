@@ -38,15 +38,15 @@ int retorunePrefexDeChaine(char *argv1, char **rep, char **cregex, char **finreg
     }
     if ( !(*chaine) ) return 1;
 
-    for (; chaine != argv1; --chaine) if (*chaine == '/') break;
-    if (chaine == argv1) *rep = strdup(getenv("PWD"));
-    else {*chaine = '\0'; ++chaine;}
+    for (; chaine != argv1; --chaine) if (*chaine == REGEX_SLASH) break;
+    if (chaine == argv1) *rep = strdup(".");
+    else {*chaine = REGEX_ANTISLASH_ZERO; ++chaine;}
 
-    for (ccregex = chaine; *ccregex; ++ccregex) if (*ccregex == '/') break;
+    for (ccregex = chaine; *ccregex; ++ccregex) if (*ccregex == REGEX_SLASH) break;
     *cregex = chaine;
     if ( !(*ccregex)) return 1;
 
-    *ccregex = '\0';
+    *ccregex = REGEX_ANTISLASH_ZERO;
     *finregex = ccregex+1;
 
     return 0;
@@ -144,17 +144,15 @@ int executerRegex(char **listeRep, char ***resultat){
             }
 
             c = placerAntiSlash(dirr->d_name);
-            if (debug )printf("Testfor: [%35s][%35s] ", c, cregex);
 
             if ( regexValidePour(c, cregex) ){
-                if (debug) printf("  ok\n");
                 if (dirr->d_type == DT_DIR){
                     char *r = fusionner2(repertoire, "/");
                     res[indice++] = fusionner4(r, c, "/", finregex);
                     free(r);
-                } else if (finregex == NULL || *finregex == '\0')
+                } else if (finregex == NULL || *finregex == REGEX_ANTISLASH_ZERO)
                     res[indice++] = fusionner3(repertoire, "/", c);
-            } else if (debug) printf(" nok\n");
+            }
 
             free(c);
         }

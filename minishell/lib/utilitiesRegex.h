@@ -7,7 +7,7 @@
 #define REGEX_ANTISLASH_ZERO '\0'
 #define REGEX_CROCHET_OUVRANT '['
 #define REGEX_CROCHET_FERMANT ']'
-#define REGEX_TILD '~'
+#define REGEX_TILD '^'
 #define REGEX_INTERVAL '-'
 #define REGEX_QUESTION_MARK '?'
 #define REGEX_ETOILE_MARK '*'

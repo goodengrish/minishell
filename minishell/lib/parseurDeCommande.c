@@ -48,14 +48,14 @@ char *extraireLeSeparateur(char **caractere){
 
 char *extraireUneChaineQuote(char **caractere){
 
-	char *chaineFormater = *caractere;
+	char *chaineFormater = *caractere+1;
 	char *c = *caractere;
 
-	for (; *c && *c != QUOTE; ++c) *c = *(c+1);
+	for (++c; *c && *c != QUOTE; ++c);
 	if (*c == ANTISLASHZERO) return NULL;
 	
 	*c = ANTISLASHZERO;
-	*caractere = c;
+	*caractere = c+1;
 	return chaineFormater;
 
 }
@@ -143,6 +143,16 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 					++caractere;
 				} 
 				if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) ++contientDesRegex;
+
+				if ( CARACTERE_VARIABLE(caractere)){
+					char *s = caractere;
+					char *var = extraieLaVariable(idLocal, idGlobal, &caractere);
+					*s = ANTISLASHZERO;
+
+					bufferCommandes[arguments] = fusionner2(bufferCommandes[arguments], var);
+					free(var);
+					
+				}
 				++caractere;
 			}
 
