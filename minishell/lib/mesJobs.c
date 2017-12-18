@@ -1,13 +1,14 @@
 #include "../src/quivontbien.h"
 
+#include "memoirePartager.h"
 #include "mesJobs.h"
 
 int NUMBRE_DE_JOB = 0;
 
 void mettreEnPauseUnProcessus(){
 
-    kill(getpid(), SIGTSTP);
     printf("[%s] devient job n°%d", getenv("_"), NUMBRE_DE_JOB);
+    kill(getpid(), SIGTSTP);
 }
 
 void remprendreUnProcessus(pid_t pid){
@@ -17,5 +18,5 @@ void remprendreUnProcessus(pid_t pid){
 
 int executeMyJobCommande(){
 
-    return -2;
+    return IGNORE_COMMANDE;
 }
