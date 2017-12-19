@@ -33,8 +33,11 @@ key_t genererUneClef(char *unChemin, int unEntier);
 void nettoieUneZoneDeMemoirePartager(MemoirePartagerId id);
 void* attacherMemoirePartager(MemoirePartagerId id);
 void detruireMemoirePartager(MemoirePartagerId id);
+int preformatAfficherMemoirePartager(MemoirePartagerId id, void(*affichage)(char* c) );
+int preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur);
+int preformatSupprimerUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur);
 int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemble);
-void detacherMemoirePartager(ZoneMp *zone);
+void detacherMemoirePartager(void *zone);
 
 int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat);
 int executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes);

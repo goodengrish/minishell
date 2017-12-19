@@ -13,6 +13,7 @@ int fichierExist(char *fichier);
 int fichierExistDans(char *repertoire, char *fichier);
 void ecrireLog(char *commande);
 int processPereEstUnTinyShell();
+int retournerLaCommandeViaPid(pid_t pid, char **resultat);
 int obtenirLeFDFichier(char *fichierNom, int);
 
 #endif

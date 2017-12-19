@@ -80,7 +80,7 @@ void* attacherMemoirePartager(MemoirePartagerId id){
     return zone;
 }
 
-void detacherMemoirePartager(ZoneMp *zone){
+void detacherMemoirePartager(void *zone){
 
     shmdt(zone);
 }
@@ -181,9 +181,9 @@ int obetnir(char *buffer, int *stouage, char *clef, char **resultat){
     return *resultat != NULL;
 }
 
-void afficher(char *buffer, int *stouage){
+void afficher(char *buffer, int *stouage, void(*affichage)(char* c) ){
 
-    for (; *stouage != -1 ; ++stouage ) printf("%s\n", buffer+(*stouage));
+    for (; *stouage != -1 ; ++stouage ) affichage(buffer+(*stouage));
 
     putchar('\n');
     return ;
@@ -221,12 +221,12 @@ int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemb
     return 1;
 }
 
-int preformatAfficherMemoirePartager(MemoirePartagerId id){
+int preformatAfficherMemoirePartager(MemoirePartagerId id, void(*affichage)(char* c) ){
 
     ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
     P(zone->acces);
-    afficher(zone->buffer,zone->stouage);
-    V(zone->acces);
+    afficher(zone->buffer,zone->stouage,affichage);
+    V(zone->acces); 
     detacherMemoirePartager(zone);
     return 1;
 
@@ -265,7 +265,7 @@ int executerCommandOperationSurLesVariables(int espace , char **CommandesParLign
     if (!strcmp(ajouter, *CommandesParLignes)){
     
         if (*(CommandesParLignes+1) == NULL){
-            preformatAfficherMemoirePartager(id);
+            preformatAfficherMemoirePartager(id, afficherString);
             return 1;
         }
     

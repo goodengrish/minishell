@@ -43,30 +43,36 @@ int fichierExistDans(char *repertoire, char *fichier){
     else free(chemin); return 0;
 }
 
-int processPereEstUnTinyShell(){
+int retournerLaCommandeViaPid(pid_t pid, char **resultat){
 
     static int NOMBRE = 12;
-    char chainePid[NOMBRE];
-    char procPereNom[NOMBRE];
-    char *procPereChemin;
-    int resultat = 0;
-    int fd;
-    
-    memset(chainePid, 0, NOMBRE);
-    sprintf(chainePid, "%d",  getppid());
 
-    procPereChemin = fusionner3("/proc/", chainePid, "/cmdline");
-    fd = open(procPereChemin, O_RDONLY);
+    int fd;
+    char chainePid[NOMBRE];
+    memset(chainePid, 0, NOMBRE);
+    sprintf(chainePid, "%d",  pid);
+
+    *resultat = fusionner3("/proc/", chainePid, "/cmdline");
+    fd = open(*resultat, O_RDONLY);
 
     if (fd == -1) FATALE_ERREUR("fd=NULL processPereEsUnTinyShell",125);
-
-    memset(procPereNom, 0, NOMBRE);
-    read(fd,procPereNom, NOMBRE);
     
-    if ( !strcmp(procPereNom, "./tinyshell") ) resultat = 1;
-
+    memset(*resultat, 0, NOMBRE);
+    read(fd,*resultat, NOMBRE);
     close(fd);
-    free(procPereChemin);
+    return 1;
+}
+
+int processPereEstUnTinyShell(){
+
+    char *procPereNom = NULL;
+    int resultat = 0;
+    
+    retournerLaCommandeViaPid(getppid(), &procPereNom);
+    
+    if ( !strcmp(procPereNom, "./mysh") ) resultat = 1;
+    free(procPereNom);
+
     return resultat;
 
 }

@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 DEBUGFLAG = -DDEBUG=1
-EXECUTABLE_NOM = tinyshell
+EXECUTABLE_NOM = mysh
 OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o status.o mesJobs.o
 
 all: tinyshell
@@ -51,7 +51,7 @@ clean:
 	rm -rf *.o 2> /dev/null || true
 	rm -rf */*.o 2> /dev/null || true
 	rm shellId.txt 2> /dev/null || true
-	rm tinyshell 2> /dev/null || true
+	rm mysh 2> /dev/null || true
 
 clear: clean
 	rm -f project.zip

@@ -19,7 +19,7 @@ char* fusionner3(const char *mot1, const char *mot2, const char *mot3);
 char* fusionner4(const char *mot1, const char *mot2, const char *mot3, const char *mot4);
 
 /** afficheur **/
-void afficherString(const char *c);
+void afficherString(char *c);
 void afficherChaineJusqua(char *c, char seperateur);
 void afficherTableauDeString(char **cc);
 

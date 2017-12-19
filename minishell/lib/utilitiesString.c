@@ -115,9 +115,9 @@ char* fusionner4(const char *mot1, const char *mot2, const char *mot3, const cha
 
 }
 
-void afficherString(const char *c){
+void afficherString(char *c){
 
-    printf("[%s]\n", c);
+    printf("%s\n", c);
 }
 
 void afficherChaineJusqua(char *c, char seperateur){

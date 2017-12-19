@@ -86,7 +86,8 @@ int executeProgramme(char **uneCommande){
 		TESTFORKOK(pid);
 
 		if (pid) return 0;
-		signal(SIGINT, NULL);
+		signal(SIGTSTP, NULL);
+		signal(SIGINT, SIG_DFL);
 			
 	}
 
