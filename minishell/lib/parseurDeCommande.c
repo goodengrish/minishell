@@ -48,13 +48,13 @@ char *extraireLeSeparateur(char **caractere){
 
 char *extraireUneChaineQuote(char **caractere){
 
-	char *chaineFormater = *caractere+1;
+	char *chaineFormater = *caractere;
 	char *c = *caractere;
 
 	for (++c; *c && *c != QUOTE; ++c);
 	if (*c == ANTISLASHZERO) return NULL;
 	
-	*c = ANTISLASHZERO;
+	//*c = ANTISLASHZERO;
 	*caractere = c+1;
 	return chaineFormater;
 
@@ -65,7 +65,7 @@ char **auto_realloc(char **bufferCommandes ,int *tailleMax){
 	static const int PDC_REALLOCATION = 8;
 
 	char **p = (char**) realloc(bufferCommandes, sizeof(char*)*( (*tailleMax) +PDC_REALLOCATION) );
-	if (p == NULL) REALLOC_ERREUR(126);
+	if ( estNull(p) ) REALLOC_ERREUR(126);
 	(*tailleMax) += PDC_REALLOCATION;
 	return p;
 }
@@ -103,7 +103,7 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 		}
 		else if (*caractere == QUOTE){
 			bufferCommandes[arguments] = extraireUneChaineQuote(&caractere);
-			if (bufferCommandes[arguments] == NULL)
+			if ( estNull(bufferCommandes[arguments]) )
 				PDC_ERREUR_EXECUTE_ANTISLASH_VIDE(buffer,bufferCommandes);
 			carPrecedantEstSeparateur = 0;
 
@@ -126,22 +126,11 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 			
 		}
 		else {
-			int contientdesAntiSlash = 0,
-			    contientDesRegex = 0,
-			    bloquerRegex = 0;
+			int contientDesRegex = 0;
 
 			bufferCommandes[arguments] = caractere;
 			for (; !compareDecalageAntislash(*caractere) ; ){
-				
-				if (*caractere == ANTISLASH){
-					++contientdesAntiSlash;
 
-					if (*(caractere+1) == ANTISLASHZERO ||  *(caractere+1) == RETOURALALIGNE){
-						PDC_ERREUR_EXECUTE_ANTISLASH_VIDE(buffer, bufferCommandes);
-
-					} else if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) bloquerRegex = 1;
-					++caractere;
-				} 
 				if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) ++contientDesRegex;
 
 				if ( CARACTERE_VARIABLE(caractere)){
@@ -158,21 +147,8 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 
 			if (*caractere == ESPACE || *caractere == RETOURALALIGNE) *caractere++ = ANTISLASHZERO;
 
-			if (contientdesAntiSlash){
-				char *p;
-				
-				for (p = bufferCommandes[arguments]; *p; ++p){
-					if (*p == ANTISLASH){ *(decalerDansLaMemeChaine(p+1,p)) = ANTISLASHZERO;}				
-				}
-			} 
-			else if(!bloquerRegex && contientDesRegex){
-				
-				int anciennePositionArgument = arguments;
-				if (preformatExecuterRegex(&bufferCommandes, &arguments, &tailleMax, bufferCommandes[arguments]) == ERR ||
-				      anciennePositionArgument == arguments)
-					  PDC_ERREUR_EXECUTE_RESREGEX_NULL(bufferCommandes[arguments], buffer, bufferCommandes);
-				
-			}
+			if(contientDesRegex)
+			    preformatExecuterRegex(&bufferCommandes, &arguments, &tailleMax, bufferCommandes[arguments]);
 
 			carPrecedantEstSeparateur = 0;
 		}

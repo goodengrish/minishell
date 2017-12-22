@@ -18,8 +18,6 @@ void P(int s){
 
 int estDansLeFormatClefValeur(char *clefvaleur){
 
-    static const char EGAL = '=';
-
     if (*clefvaleur == EGAL) return 0;
     for ( ; *clefvaleur && *clefvaleur != EGAL; ++clefvaleur);
     if (*clefvaleur != EGAL) return 0;

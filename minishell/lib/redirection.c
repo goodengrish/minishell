@@ -17,7 +17,7 @@ a < b   -> stdin vers a
 
 char** pointeurProchainSeparateur(char **commande){
     
-    if (commande == NULL) return NULL;
+    if ( estNull(commande) ) return NULL;
     for (; *commande && !CARACTERE_REDIRECTION(*commande); ++commande);
     return commande;
 }
@@ -72,6 +72,6 @@ int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
 int executeRedirectionSiBesoin(char **commande){
 
     char **pps = pointeurProchainSeparateur(commande);
-    return (*pps == NULL)? IGNORE_COMMANDE : redirigeSiBesoin(commande, *pps, *(pps+1));
+    return ( estNull(*pps) )? IGNORE_COMMANDE : redirigeSiBesoin(commande, *pps, *(pps+1));
 
 }

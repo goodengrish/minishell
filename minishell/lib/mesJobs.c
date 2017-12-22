@@ -13,11 +13,11 @@ void affichageDesJobs(char *c){
     char *d;
     int jobId = atoi(c), pid;
 
-    for (d=c; *d && *d != '='; ++d);
+    for (d=c; *d && *d != EGAL; ++d);
     pid = atoi(d);
 
     if ( !retournerLaCommandeViaPid(pid, &d)){
-        ERREUR("défaut de synchronisation de la MpJob et des pid actifs (skip)\n");
+        ERREUR("erreur de synchronisation de la MpJob et des pid actifs (skip)\n");
     } else {
         printf("[%d] %d %20s %s\n", jobId, pid, "etat", d);
         free(d);
@@ -41,14 +41,10 @@ void mettreEnPauseUnProcessus(){
     kill(getpid(), SIGTSTP);
 }
 
-void remprendreUnProcessus(int jobId){
+void remprendreUnProcessus(char* jobAscii){
 
-    int pidJobId = -1;
-    char *pidAscii = NULL;
-    char jobAscii[CHIFFRE_DE_JOB_MAX];
-    memset(jobAscii, 0, CHIFFRE_DE_JOB_MAX);
-
-    sprintf(jobAscii, "%d", jobId);
+    int pidJobId;
+    char *pidAscii;
 
     if ( obtenirLaValeurDuneClef(idZoneJob, jobAscii, &pidAscii) ){
 
@@ -60,19 +56,29 @@ void remprendreUnProcessus(int jobId){
 
     } else {
 
-        printf("Aucun job ne porte l'id %d (abandons)\n", jobId);
-        return;
+        printf("Aucun job ne porte l'id %s (abandons)\n", jobAscii);
     }
+
+    return;
 
 }
 
-
 int executeMyJobCommande(char **commande){
 
-    if (!strcmp(*commande, "myjob")){
+    if (!strcmp(*commande, MYJOB_STR)){
 
         preformatAfficherMemoirePartager(idZoneJob, affichageDesJobs);
         return 0;
+    } else if (!strcmp(*commande, MYFG_STR)){
+
+        if ( estNull(*(commande+1)) ){ 
+            ERREUR("commande incompléte, utiliser myfg <jobId> (abandon)\n"); 
+            return 1;
+        }
+        
+        remprendreUnProcessus( *(commande+1) );
+        return 0;
+
     }
 
     else return IGNORE_COMMANDE;

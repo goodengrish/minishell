@@ -27,13 +27,16 @@
 #define ESPACE ' '
 #define QUOTE '"'
 #define POINTVIRGULE ';'
+#define EGAL '='
 
 #define SHELLIDFICHIER "Makefile"
 #define DROITS_DE_BASE 0600
 
+#define nonNull(p) ( p )
+#define estNull(p) !nonNull(p)
 #define ERREUR(s) perror(s)
 #define FATALE_ERREUR(s,n) ERREUR(s),exit(n);
-#define RETURN_ERREUR(s,n) {ERREUR(s);return n;}
+#define RETURN_ERREUR(s,n) {fprintf(stderr, s);return n;}
 #define TESTFORKOK(pid) if(pid==ERR){fprintf(stderr,"fork-1 (%s).c,(%d)Li\n", __FILE__, __LINE__);exit(errno);}
 #define REALLOC_ERREUR(n) fprintf(stderr,"Erreur de realloc %s ligne:%d (abandon)\n", __FILE__, __LINE__),exit(n);
 

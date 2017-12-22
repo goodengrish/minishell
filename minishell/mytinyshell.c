@@ -28,6 +28,10 @@ void quitterShellProprement(){
 	}
 }
 
+void jeFaisRien(){
+
+}
+
 void monSigIntSousProcces(){
 
 	exit(SIGINT);
@@ -77,6 +81,8 @@ int executeProgramme(char **uneCommande){
 	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
 	status = executerCommandeExit(uneCommande);
 	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
+	status = executeMyJobCommande(uneCommande);
+	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
 
 
 	if ( !strcmp(derniereSousCommande(uneCommande),"&") ){
@@ -86,7 +92,7 @@ int executeProgramme(char **uneCommande){
 		TESTFORKOK(pid);
 
 		if (pid) return 0;
-		signal(SIGTSTP, NULL);
+		signal(SIGTSTP, mettreEnPauseUnProcessus);
 		signal(SIGINT, SIG_DFL);
 			
 	}
@@ -187,11 +193,11 @@ int executeLesCommandes(char **pointerProchaineCommande){
 		if (operateurCommandeCourrantPrecedant){
 			if (operateurCommandeCourrantPrecedant == CODE_ET_LOGIQUE){
 				if ( !(resultatDesCommandes  && resultatDerniereCommande) ) return 0;
-			} else if (operateurCommandeCourrantPrecedant == CODE_OU_LOGIQUE){
+			} else if (operateurCommandeCourrantSuivante == CODE_OU_LOGIQUE){
 				if (resultatDerniereCommande) pointerProchaineCommande = ignoreToutLesSeparateur(pointerProchaineCommande, "||");
 				resultatDesCommandes = resultatDesCommandes || resultatDerniereCommande;
 				if (operateurCommandeCourrantSuivante == CODE_ET_LOGIQUE && !resultatDesCommandes) return 0;
-			} else if (operateurCommandeCourrantPrecedant == CODE_FIN_LIGNE) return resultatDerniereCommande;
+			} else if (operateurCommandeCourrantPrecedant == CODE_FIN_LIGNE) continue;
 		} else {
 			if (operateurCommandeCourrantSuivante == CODE_ET_LOGIQUE && !resultatDerniereCommande) return 0;
 			if (operateurCommandeCourrantSuivante == CODE_OU_LOGIQUE && resultatDerniereCommande) 
@@ -283,7 +289,7 @@ int main(int argc, char** argv, char **envp){
 	
 
 	signal(SIGINT, monSigInt);
-	signal(SIGTSTP, NULL);
+	signal(SIGTSTP, jeFaisRien);
 	//atexit(quitterShellProprement);
 
 	shellId = processPereEstUnTinyShell();

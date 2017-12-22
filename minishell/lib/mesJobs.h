@@ -3,11 +3,15 @@
 #ifndef __MES_JOBS_H__
 #define __MES_JOBS_H__ 1
 
-#define JOBIDFICHIER "mesJobs.h"
+#define MYFG_STR "myfg"
+#define MYBG_STR "mybg"
+#define MYJOB_STR "myjob"
+
+#define JOBIDFICHIER "/blin/sh"
 #define CHIFFRE_DE_JOB_MAX 7
 
 void mettreEnPauseUnProcessus();
-void remprendreUnProcessus(pid_t pid);
+void remprendreUnProcessus(char* jobAscii);
 int executeMyJobCommande();
 
 #endif
