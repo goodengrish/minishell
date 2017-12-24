@@ -19,7 +19,6 @@
 #define CODE_DOLLAR     '$'
 
 // s est un char*
-#define CARACTERE_SIGNE_OPERATION(s) ( (*s) == '+' || (*s) == '-' )
 #define CARACTERE_SEPARATON_ENTRE_COMMANDE(s) ((*s)=='\0' || (*s) == '\n' || (*s) == ' ')
 #define CARACTERE_BOOLEAN_OU(s) ((*s) == '|' && *(s+1) == '|' && *(s+2) != '|')
 #define CARACTERE_BOOLEAN_ET(s) ((*s) == '&' && *(s+1) == '&' && *(s+2) != '&')
@@ -46,7 +45,7 @@ CARACTERE_REDIRECTION_A_STDOUTERR(s) || CARACTERE_REDIRECTION_STDIN(s))
  CARACTERE_TUBE(s) || CARACTERE_BOOLEAN(s) ||  CARACTERE_BACKGROUND(s))
 
 #define CARACTERE_SEPARATEUR_TOTAL(s) (CARACTERE_SEPARATEUR(s) ||\
- CARACTERE_SEPARATON_ENTRE_COMMANDE(s) || CARACTERE_SIGNE_OPERATION(s))
+ CARACTERE_SEPARATON_ENTRE_COMMANDE(s) )
 
 #define UN_CARACTERE_SEPARATEUR(c) ( c == '|' || c == '&' || c == '<' || c == '>' || c == '+' || c == ';' )
 

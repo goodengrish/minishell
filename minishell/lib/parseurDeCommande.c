@@ -46,12 +46,12 @@ char *extraireLeSeparateur(char **caractere){
     return separateur;
 }
 
-char *extraireUneChaineQuote(char **caractere){
+char *extraireUneChaineQuote(char **caractere, char fin){
 
 	char *chaineFormater = *caractere;
 	char *c = *caractere;
 
-	for (++c; *c && *c != QUOTE; ++c);
+	for (++c; *c && *c != fin; ++c);
 	if (*c == ANTISLASHZERO) return NULL;
 	
 	//*c = ANTISLASHZERO;
@@ -60,12 +60,13 @@ char *extraireUneChaineQuote(char **caractere){
 
 }
 
-char **auto_realloc(char **bufferCommandes ,int *tailleMax){
+char **auto_realloc(char **bufferCommandes ,int argument, int *tailleMax){
 
 	static const int PDC_REALLOCATION = 8;
 
 	char **p = (char**) realloc(bufferCommandes, sizeof(char*)*( (*tailleMax) +PDC_REALLOCATION) );
 	if ( estNull(p) ) REALLOC_ERREUR(126);
+	memset(p+argument, 0, PDC_REALLOCATION);
 	(*tailleMax) += PDC_REALLOCATION;
 	return p;
 }
@@ -90,7 +91,7 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 	for (arguments = 0 ; *caractere ; ++arguments){
 
 		if (arguments+2 == tailleMax)
-			bufferCommandes = auto_realloc(bufferCommandes, &tailleMax);
+			bufferCommandes = auto_realloc(bufferCommandes, arguments, &tailleMax);
 
 		if (*caractere == RETOURALALIGNE){*caractere = ANTISLASHZERO;continue;}
 		
@@ -102,7 +103,14 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 
 		}
 		else if (*caractere == QUOTE){
-			bufferCommandes[arguments] = extraireUneChaineQuote(&caractere);
+			bufferCommandes[arguments] = extraireUneChaineQuote(&caractere, QUOTE);
+			if ( estNull(bufferCommandes[arguments]) )
+				PDC_ERREUR_EXECUTE_ANTISLASH_VIDE(buffer,bufferCommandes);
+			carPrecedantEstSeparateur = 0;
+
+		}
+		else if (*caractere == QUOTE2){
+			bufferCommandes[arguments] = extraireUneChaineQuote(&caractere, QUOTE2);
 			if ( estNull(bufferCommandes[arguments]) )
 				PDC_ERREUR_EXECUTE_ANTISLASH_VIDE(buffer,bufferCommandes);
 			carPrecedantEstSeparateur = 0;
@@ -131,7 +139,14 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 			bufferCommandes[arguments] = caractere;
 			for (; !compareDecalageAntislash(*caractere) ; ){
 
-				if ( EST_UNE_CARACTERE_REGEX(*(caractere+1)) ) ++contientDesRegex;
+				if ( *caractere == ANTISLASH){
+					++caractere;
+					if ( *caractere == ANTISLASHZERO)
+						PDC_ERREUR_EXECUTE_ANTISLASH_VIDE(buffer, bufferCommandes)
+				    else {++caractere; continue;}
+				}
+
+				if ( EST_UNE_CARACTERE_REGEX(*(caractere)) ) ++contientDesRegex;
 
 				if ( CARACTERE_VARIABLE(caractere)){
 					char *s = caractere;

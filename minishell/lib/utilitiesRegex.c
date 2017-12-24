@@ -31,22 +31,22 @@ int preformatExecuterRegex(char ***bufferCommandes, int *argument, int *tailleMa
 
        char **liste = resultat.gl_pathv;
 
-       for (; *liste && elementLu < resultat.gl_pathc; ++liste){
+       if ( resultat.gl_pathc >= (*tailleMax)-(*argument) ){
+         char **p = (char**) realloc(*bufferCommandes, sizeof(char*)*((*tailleMax)+resultat.gl_pathc ));
+         if ( estNull(p) ) REALLOC_ERREUR(126);
+         memset(p+(*argument), 0, resultat.gl_pathc);
+         *bufferCommandes = p; *tailleMax += resultat.gl_pathc;
+       }
 
-           if ( (*argument)+2 >= *tailleMax){
-               char **p = (char**) realloc(bufferCommandes, (*tailleMax)+REGEX_REALLOC_EXTENTION);
-               if ( estNull(p) ) REALLOC_ERREUR(126);
-               memset(p+(+*argument), 0, REGEX_REALLOC_EXTENTION);
-               *bufferCommandes = p; *tailleMax += REGEX_REALLOC_EXTENTION;
-           }
+       for (; *liste && elementLu < resultat.gl_pathc; ++liste){
 
            elementLu++;
            (*bufferCommandes)[(*argument)++] = strdup(*liste);
        }
     }
 
-    if ( !elementLu ) (*bufferCommandes)[(*argument)++] = expresion;
-    (*bufferCommandes)[*argument] = NULL;
+    if ( !elementLu ) (*bufferCommandes)[*argument] = expresion;
+    else (*argument)--;
 
     globfree(&resultat);
     return 0;

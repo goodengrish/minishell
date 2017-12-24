@@ -28,35 +28,35 @@ void quitterShellProprement(){
 	}
 }
 
-void jeFaisRien(){
-
-}
-
-void monSigIntSousProcces(){
-
-	exit(SIGINT);
-}
-
 void monSigInt(){
 
 	char c;
 	printf("\nVoulez vous sortir du tinyshell et tuer de nombreux fils innoncents? (y/n): ");
 	for (; (c = getchar()) ; ){
-		if (c == 'n') return;
-		else if (c == 'y'){kill(0, getpgrp()); exit(SIGINT);}
+		if (c == MON_SININT_NO ) break; 
+		if (c == MON_SININT_YES) kill(0, SIGTERM),exit(SIGINT);
 	}
 
-	for (; (c = getchar()) != EOF; );
-
+	for (; (c = getchar()) != '\n' && c != EOF; );
 }
 
 int executerCommandeExit(char **uneCommande){
 
-	if ( !strcmp(*uneCommande,"exit") && *(uneCommande+1) == NULL){
-		quitterShellProprement();
-		kill(getpid(), SIGTERM);
+	if ( !strcmp(*uneCommande,EXIT_STR) && estNull(*(uneCommande+1)) ){
+		quitterShellProprement(); kill(getpid(), SIGTERM);
 		return 1;	
-	} else  return -2;
+	} else  return IGNORE_COMMANDE;
+}
+
+int executerMyCd(char **uneCommande){
+
+	if ( !strcmp(*uneCommande, CD_STR) ){
+		if ( estNull(*(uneCommande+1)) ) chdir(HOME_STR);
+		else chdir( *(uneCommande+1) );
+		return 1;
+	}
+
+	return IGNORE_COMMANDE;
 }
 
 char *derniereSousCommande(char **uneCommande){
@@ -71,19 +71,15 @@ int executeProgramme(char **uneCommande){
 	int status;
 	int commandeBackground = 0;
 
-	if (*uneCommande == NULL || !(**uneCommande) ) return 0;
+	if ( estNull(*uneCommande) || !(**uneCommande) ) return 0;
 
-	status = executerCommandOperationSurLesVariables(VAR_LOCAL, uneCommande);
-	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
-	status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande);
-	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
-	status = executerCommandStatus(uneCommande);
-	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
-	status = executerCommandeExit(uneCommande);
-	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
-	status = executeMyJobCommande(uneCommande);
-	if (status != IGNORE_COMMANDE) return (status == 1)? 0 : 1;
-
+	if ( (status = executerCommandOperationSurLesVariables(VAR_LOCAL, uneCommande)) != IGNORE_COMMANDE ||
+	     (status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande)) != IGNORE_COMMANDE ||
+		 (status = executerCommandStatus(uneCommande)) != IGNORE_COMMANDE ||
+		 (status = executerCommandeExit(uneCommande)) != IGNORE_COMMANDE ||
+		 (status = executeMyJobCommande(uneCommande)) != IGNORE_COMMANDE ||
+		 (status = executerMyCd(uneCommande)) != IGNORE_COMMANDE 
+		) return (status == 1)? 0 : 1;
 
 	if ( !strcmp(derniereSousCommande(uneCommande),"&") ){
 
@@ -93,9 +89,8 @@ int executeProgramme(char **uneCommande){
 
 		if (pid) return 0;
 		signal(SIGTSTP, mettreEnPauseUnProcessus);
-		signal(SIGINT, SIG_DFL);
 			
-	}
+	} else signal(SIGINT, SIG_IGN);
 
 	pid = fork();
 	TESTFORKOK(pid);
@@ -107,20 +102,24 @@ int executeProgramme(char **uneCommande){
 	
 	if (!pid){
 
-		signal(SIGINT, monSigIntSousProcces);
-		signal(SIGTSTP, mettreEnPauseUnProcessus);
+		if (commandeBackground){
+			printf("[0] %d\n", getpid());
+			signal(SIGINT, SIG_IGN);
+
+		} else signal(SIGINT, SIG_DFL);
 
 		executeRedirectionSiBesoin(uneCommande);
 
-		if (commandeBackground){
-			printf("[0] %d\n", getpid());
-		}
-
 		execvp(*uneCommande, uneCommande);
+		fprintf(stderr, "Le programme %s n'existe pas\n", *uneCommande);
 		_exit(127);
 	
 	} else {
+
+		if ( commandeBackground ) signal(SIGINT, SIG_IGN);
+
 		wait(&status);
+
 		CODE_DERNIERE_ARRET_OK = (WIFEXITED(status))? 1 : 0;
 		CODE_DERNIERE_PROCESSUS = (CODE_DERNIERE_ARRET_OK)? WEXITSTATUS(status) : ERR;
 		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
@@ -131,6 +130,7 @@ int executeProgramme(char **uneCommande){
 			kill(getpid(), SIGTERM);
 		}
 
+		signal(SIGINT, monSigInt);
 		return CODE_DERNIERE_PROCESSUS;
 	
 	}
@@ -146,7 +146,7 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 	char operateurLogique = 0;
 	char operateurDeFin = 0;
 
-	if ( prochaineCommande == NULL || (*prochaineCommande) == NULL){ 
+	if ( estNull(prochaineCommande) || estNull(*prochaineCommande) ) { 
 		*operateur = 0;
 		return 0;
 	}
@@ -182,7 +182,7 @@ int executeLesCommandes(char **pointerProchaineCommande){
 	int resultatDesCommandes = 0;
 	int fini = 0;
 
-	if (pointerProchaineCommande == NULL || *pointerProchaineCommande == NULL) return 0;
+	if ( estNull(pointerProchaineCommande) || estNull(*pointerProchaineCommande) ) return 0;
 
 	for (; !fini ;){
 
@@ -263,13 +263,14 @@ int executerMinishell(int idLocal, int idGlobal){
 
 	AFFICHER_PROMPT();
 	espaceDuBuffer = bufferDepuisLentrerStandard(&bufferStdin);
+	if (DEBUG) printf("commande entrer :[%s]\n", bufferStdin);
 
 	if (*bufferStdin == RETOURALALIGNE){ free(bufferStdin); return 1;} 
 
 	CommandesParLignes = ChaineVersTabDeChaineParReference(idLocal, idGlobal, bufferStdin);
 
 	if ( *CommandesParLignes == NULL || *bufferStdin == RETOURALALIGNE);
-	else if ( !strcmp("exit", *CommandesParLignes)) fini = 1;
+	else if ( !strcmp(EXIT_STR, *CommandesParLignes)) fini = 1;
 	else {
 		status = executeLesCommandes(CommandesParLignes);
 		if (DEBUG) printf("[CONSOLE LOG] :%s:\n", (status)? "SUCCES" : "FAILED");
@@ -289,8 +290,7 @@ int main(int argc, char** argv, char **envp){
 	
 
 	signal(SIGINT, monSigInt);
-	signal(SIGTSTP, jeFaisRien);
-	//atexit(quitterShellProprement);
+	signal(SIGTSTP, SIG_IGN);
 
 	shellId = processPereEstUnTinyShell();
 	if (DEBUG){printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d grop%d\n", 
@@ -305,5 +305,6 @@ int main(int argc, char** argv, char **envp){
 	
 	for (; executerMinishell(idLocal, idGlobal) ;);
 
+	quitterShellProprement();
 	exit(0);
 }

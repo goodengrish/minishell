@@ -19,17 +19,18 @@
 
 #define ERR -1
 #define IGNORE_COMMANDE -2
-#define DEBUG 0
+#define DEBUG 1
 
 #define ANTISLASHZERO '\0'
 #define RETOURALALIGNE '\n'
 #define ANTISLASH '\\'
 #define ESPACE ' '
 #define QUOTE '"'
+#define QUOTE2 '\''
 #define POINTVIRGULE ';'
 #define EGAL '='
 
-#define SHELLIDFICHIER "Makefile"
+#define SHELLIDFICHIER "/bin/echo"
 #define DROITS_DE_BASE 0600
 
 #define nonNull(p) ( p )

@@ -4,6 +4,12 @@
 #define ALLOCATION_CHAINE_TAILLE_BUFFER 1024
 #define ALLOCATION_CHAINE_EXTEND_BUFFER 512
 
+#define MON_SININT_YES 'y'
+#define MON_SININT_NO  'n'
+#define EXIT_STR "exit"
+#define CD_STR "cd"
+#define HOME_STR "/home"
+
 #define AFFICHER_PROMPT() printf("~> ");
 
 int executeProgramme(char **uneCommande);

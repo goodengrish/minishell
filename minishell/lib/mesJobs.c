@@ -53,6 +53,7 @@ void remprendreUnProcessus(char* jobAscii){
         pidJobId = atoi(pidAscii); free(pidAscii);
         signal(SIGCONT, SIG_DFL);
         kill(pidJobId, SIGCONT);
+        waitpid(pidJobId, NULL, 0);
 
     } else {
 
@@ -79,6 +80,10 @@ int executeMyJobCommande(char **commande){
         remprendreUnProcessus( *(commande+1) );
         return 0;
 
+    } else if (!strcmp(*commande, MYBG_STR)){
+
+        ERREUR("Commande non implémenté\n");
+        return 1;
     }
 
     else return IGNORE_COMMANDE;

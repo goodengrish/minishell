@@ -19,7 +19,7 @@
 #define REGEX_ERREUR_PLAGE_ANBIGUE "plage de regex inconnue prés de '[-]' (abandons)\n"
 #define REGEX_ERREUR_PLAGE_VIDE "regex inconnu '[]' (abandon)\n"
 
-#define EST_UNE_CARACTERE_REGEX(c) (c=='?' || c=='*' || c=='[' || c==']' || c=='~' || c=='-')
+#define EST_UNE_CARACTERE_REGEX(c) (c=='?' || c=='*' || c=='[' || c==']' )
 #define EST_UN_ALPHADIGIT(c) (isalpha(c) || isdigit(c))
 
 int comparateurEstUnCaractereRegex(char c);

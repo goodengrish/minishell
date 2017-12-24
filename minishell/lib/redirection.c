@@ -27,6 +27,11 @@ int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
     char **anull;
     int fd_fichier, doubleDup = 0;
 
+    if ( estNull(fichier) ){
+        fprintf(stderr, "Mauvaise utilisation des redirection, <cmd> <redirection> <fichier>\n");
+        _exit(127);
+    }
+
     if ( CARACTERE_REDIRECTION_O_STDOUT(redirection)){
         close(STDOUT_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_WRONLY | O_TRUNC);
     }
@@ -51,12 +56,12 @@ int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
         close(STDERR_FILENO); fd_fichier = obtenirLeFDFichier(fichier, O_APPEND | O_WRONLY);
     }
     else {
-        printf("Erreur operateur de redirection inconnue (%s) (abandons)\n", redirection);
+        fprintf(stderr, "Erreur operateur de redirection inconnue (%s) (abandons)\n", redirection);
         _exit(127);
     }
 
     if ( fd_fichier == ERR){
-        printf("Un probléme est apparut lors de l'ouverture du fichier [%s]  (abandon)\n", fichier); _exit(127);
+        fprintf(stderr, "Un probléme est apparut lors de l'ouverture du fichier [%s]  (abandon)\n", fichier); _exit(127);
     }
 
     dup(fd_fichier);
@@ -72,6 +77,7 @@ int redirigeSiBesoin(char **commande, char *redirection, char *fichier){
 int executeRedirectionSiBesoin(char **commande){
 
     char **pps = pointeurProchainSeparateur(commande);
+    if (DEBUG) printf("Redirecteur trouver [%s]\n", *pps);
     return ( estNull(*pps) )? IGNORE_COMMANDE : redirigeSiBesoin(commande, *pps, *(pps+1));
 
 }
