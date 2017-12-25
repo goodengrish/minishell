@@ -10,6 +10,8 @@
 #define CD_STR "cd"
 #define HOME_STR "/home"
 
+#define PID_PROCESS_EXCEV_CLEF "/bin/ls"
+
 #define AFFICHER_PROMPT() printf("~> ");
 
 int executeProgramme(char **uneCommande);

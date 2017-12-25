@@ -1,20 +1,37 @@
 #include "../src/quivontbien.h"
+#include "CONST_mytinyshell.h"
 
 #include "memoirePartager.h"
 #include "ouvrirRepertoire.h"
 #include "utilitiesString.h"
 #include "mesJobs.h"
 
+
 int NUMBRE_DE_JOB = 0;
 MemoirePartagerId idZoneJob;
 
+void nouveauJobEnBackground(){
+
+    printf("[%d] %d\n", NUMBRE_DE_JOB, getpid());
+    signal(SIGINT, SIG_IGN);
+}
+
+void commandeEnBackgroundTermine(){
+
+    printf("%s (jobs=[%d], pid=%d) terminé avec status %d\n", 
+    NOM_DERNIER_PROCESSUS, 0, 0, CODE_DERNIERE_PROCESSUS);
+    kill(getpid(), SIGTERM);
+}
+
 void affichageDesJobs(char *c){
+
+    if (DEBUG) printf("[CONSOLE LOG] lecture de [%s]\n", c);
 
     char *d;
     int jobId = atoi(c), pid;
 
     for (d=c; *d && *d != EGAL; ++d);
-    pid = atoi(d);
+    pid = atoi(++d);
 
     if ( !retournerLaCommandeViaPid(pid, &d)){
         ERREUR("erreur de synchronisation de la MpJob et des pid actifs (skip)\n");
@@ -24,7 +41,7 @@ void affichageDesJobs(char *c){
     }
 }
 
-void mettreEnPauseUnProcessus(){
+void mettreEnPauseUnProcessus(int pid){
 
     char *c;
     char jobAscii[CHIFFRE_DE_JOB_MAX], pidAscii[CHIFFRE_DE_JOB_MAX];
@@ -32,16 +49,16 @@ void mettreEnPauseUnProcessus(){
     memset(pidAscii, 0, CHIFFRE_DE_JOB_MAX);
     
     sprintf(jobAscii, "%d", NUMBRE_DE_JOB);
-    sprintf(pidAscii, "%d", getpid());
-    printf("[%s] devient job n°%d", getenv("_"), NUMBRE_DE_JOB++);
+    sprintf(pidAscii, "%d", pid);
+    printf("[%s] devient job n°%d\n", NOM_DERNIER_PROCESSUS, NUMBRE_DE_JOB++);
     c = fusionner3(jobAscii, "=", pidAscii);
     preformatAjouterUneValeurMemoirePartager(idZoneJob, c);
     free(c);
     signal(SIGTSTP, SIG_DFL);
-    kill(getpid(), SIGTSTP);
+    kill(pid, SIGTSTP);
 }
 
-void remprendreUnProcessus(char* jobAscii){
+int remprendreUnProcessus(char* jobAscii){
 
     int pidJobId;
     char *pidAscii;
@@ -54,13 +71,14 @@ void remprendreUnProcessus(char* jobAscii){
         signal(SIGCONT, SIG_DFL);
         kill(pidJobId, SIGCONT);
         waitpid(pidJobId, NULL, 0);
+        return 0;
 
     } else {
 
         printf("Aucun job ne porte l'id %s (abandons)\n", jobAscii);
     }
 
-    return;
+    return 1;
 
 }
 
@@ -70,6 +88,7 @@ int executeMyJobCommande(char **commande){
 
         preformatAfficherMemoirePartager(idZoneJob, affichageDesJobs);
         return 0;
+
     } else if (!strcmp(*commande, MYFG_STR)){
 
         if ( estNull(*(commande+1)) ){ 
@@ -77,8 +96,7 @@ int executeMyJobCommande(char **commande){
             return 1;
         }
         
-        remprendreUnProcessus( *(commande+1) );
-        return 0;
+        return remprendreUnProcessus( *(commande+1) );
 
     } else if (!strcmp(*commande, MYBG_STR)){
 

@@ -53,7 +53,7 @@ MemoirePartagerId creeEspaceDeMemoirePartager(key_t clef, int creeNouveaux){
     MemoirePartagerId id;
     ZoneMp *table;
 
-    if (creeNouveaux) id = shmget(clef, sizeof(ZoneMp), IPC_CREAT | 0600);
+    if (creeNouveaux) id = MP_CREE(clef, sizeof(ZoneMp));
     else {
         id = shmget(clef, sizeof(ZoneMp), 0600); 
         return id; 

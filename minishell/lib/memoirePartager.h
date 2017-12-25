@@ -17,6 +17,8 @@
 #define MEMP_ERREUR_SHMAT "shmat-1\n"
 #define MEMP_ERREUR_PASASSEZDESPACE "Espace insufisant dans le zone pour inserer [%s] (abandons)\n"
 
+#define MP_CREE(clef, s) (shmget(clef, s, IPC_CREAT | 0600))
+#define MP_MAT(r,t,id) (r=(t)shmat(id,0,0))
 
 typedef int MemoirePartagerId;
 

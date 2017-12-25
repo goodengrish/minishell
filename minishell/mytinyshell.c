@@ -10,16 +10,28 @@
 #include "lib/mesJobs.h"
 #include "mytinyshell.h"
 
+#define shmPPEobtenir(var) {MP_MAT(pidProcessusExec,int*,idPidProcessusExec);\
+var = *pidProcessusExec;\
+shmdt((char*)pidProcessusExec); }
+#define shmPPEChanger(var) {MP_MAT(pidProcessusExec,int*,idPidProcessusExec);\
+*pidProcessusExec = var;\
+shmdt((char*)pidProcessusExec); }
+
+int *pidProcessusExec = NULL;
+
 int shellId=0;
 int CODE_DERNIERE_ARRET_OK = 0;
 int CODE_DERNIERE_PROCESSUS = 0;
 char *NOM_DERNIER_PROCESSUS = NULL;
-MemoirePartagerId idLocal, idGlobal;
+MemoirePartagerId idLocal, idGlobal, idPidProcessusExec;
 
 void quitterShellProprement(){
 
 	nettoieUneZoneDeMemoirePartager(idLocal);
 	detruireMemoirePartager(idLocal);
+	detruireJobs();
+
+	shmctl(idPidProcessusExec, IPC_RMID,0);
 
 	if (DEBUG){printf("[CONSOLE LOG] close ====== %d ======\n", shellId);}
 	if (!shellId){
@@ -28,7 +40,7 @@ void quitterShellProprement(){
 	}
 }
 
-void monSigInt(){
+void monSigInt2(){
 
 	char c;
 	printf("\nVoulez vous sortir du tinyshell et tuer de nombreux fils innoncents? (y/n): ");
@@ -38,6 +50,34 @@ void monSigInt(){
 	}
 
 	for (; (c = getchar()) != '\n' && c != EOF; );
+}
+
+void monSigTstp(){
+
+	int valeur;
+	pid_t pid;
+	shmPPEobtenir(valeur);
+	if ( valeur ){
+		shmPPEChanger(0);
+		mettreEnPauseUnProcessus(valeur);
+		
+		pid = fork();
+		TESTFORKOK(pid);
+		if (!pid) _exit(0);
+	}
+}
+
+void monSigInt(){
+
+	int valeur;
+	shmPPEobtenir(valeur);
+	if ( valeur ){
+		shmPPEChanger(0);
+		kill(valeur, SIGINT);
+	}
+	else monSigInt2();
+	signal(SIGINT, monSigInt);
+
 }
 
 int executerCommandeExit(char **uneCommande){
@@ -88,9 +128,8 @@ int executeProgramme(char **uneCommande){
 		TESTFORKOK(pid);
 
 		if (pid) return 0;
-		signal(SIGTSTP, mettreEnPauseUnProcessus);
 			
-	} else signal(SIGINT, SIG_IGN);
+	}
 
 	pid = fork();
 	TESTFORKOK(pid);
@@ -102,11 +141,10 @@ int executeProgramme(char **uneCommande){
 	
 	if (!pid){
 
-		if (commandeBackground){
-			printf("[0] %d\n", getpid());
-			signal(SIGINT, SIG_IGN);
+		if (DEBUG) printf("[CONSOLE LOG] pid execvp %d\n", getpid());
 
-		} else signal(SIGINT, SIG_DFL);
+		if (commandeBackground) nouveauJobEnBackground();
+		else shmPPEChanger(getpid());
 
 		executeRedirectionSiBesoin(uneCommande);
 
@@ -124,11 +162,7 @@ int executeProgramme(char **uneCommande){
 		CODE_DERNIERE_PROCESSUS = (CODE_DERNIERE_ARRET_OK)? WEXITSTATUS(status) : ERR;
 		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
 	
-		if (commandeBackground){
-			printf("%s (jobs=[%d], pid=%d) terminé avec status %d\n", 
-				NOM_DERNIER_PROCESSUS, 0, 0, CODE_DERNIERE_PROCESSUS);
-			kill(getpid(), SIGTERM);
-		}
+		if (commandeBackground) commandeEnBackgroundTermine();
 
 		signal(SIGINT, monSigInt);
 		return CODE_DERNIERE_PROCESSUS;
@@ -261,6 +295,9 @@ int executerMinishell(int idLocal, int idGlobal){
 	char*  bufferStdin = NULL;
 	int    espaceDuBuffer, status = 1, fini = 0;
 
+	signal(SIGINT, monSigInt);
+	signal(SIGTSTP, monSigTstp);
+
 	AFFICHER_PROMPT();
 	espaceDuBuffer = bufferDepuisLentrerStandard(&bufferStdin);
 	if (DEBUG) printf("commande entrer :[%s]\n", bufferStdin);
@@ -288,10 +325,13 @@ int executerMinishell(int idLocal, int idGlobal){
 
 int main(int argc, char** argv, char **envp){
 	
-
 	signal(SIGINT, monSigInt);
-	signal(SIGTSTP, SIG_IGN);
+	signal(SIGTSTP, monSigTstp);
 
+	idPidProcessusExec = MP_CREE(genererUneClef(PID_PROCESS_EXCEV_CLEF, 0), sizeof(int));
+	shmPPEChanger(0);
+
+	initialiserJobs();
 	shellId = processPereEstUnTinyShell();
 	if (DEBUG){printf("[CONSOLE LOG] open  ====== %d ====== file%d pere%d grop%d\n", 
 	                shellId, getpid(), getppid(), getpgrp());}

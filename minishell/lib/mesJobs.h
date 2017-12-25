@@ -7,11 +7,15 @@
 #define MYBG_STR "mybg"
 #define MYJOB_STR "myjob"
 
-#define JOBIDFICHIER "/blin/sh"
+#define JOBIDFICHIER "/bin/sh"
 #define CHIFFRE_DE_JOB_MAX 7
 
-void mettreEnPauseUnProcessus();
-void remprendreUnProcessus(char* jobAscii);
+void detruireJobs();
+void initialiserJobs();
+void nouveauJobEnBackground();
+void mettreEnPauseUnProcessus(int pid);
+void commandeEnBackgroundTermine();
+
 int executeMyJobCommande();
 
 #endif
