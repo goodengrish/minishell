@@ -55,7 +55,7 @@ int retournerLaCommandeViaPid(pid_t pid, char **resultat){
     *resultat = fusionner3("/proc/", chainePid, "/cmdline");
     fd = open(*resultat, O_RDONLY);
 
-    if (fd == -1) FATALE_ERREUR("fd=NULL processPereEsUnTinyShell",125);
+    if (fd == -1) return 0;
     
     memset(*resultat, 0, NOMBRE);
     read(fd,*resultat, NOMBRE);

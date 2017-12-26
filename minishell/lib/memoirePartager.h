@@ -20,6 +20,13 @@
 #define MP_CREE(clef, s) (shmget(clef, s, IPC_CREAT | 0600))
 #define MP_MAT(r,t,id) (r=(t)shmat(id,0,0))
 
+#define shmPPEobtenir(var,id,val,type) {MP_MAT(val,type,id);\
+    var = *val;\
+    shmdt((char*)val); }
+#define shmPPEChanger(var,id,val,type) {MP_MAT(val,type,id);\
+    *val = var;\
+    shmdt((char*)val); }
+
 typedef int MemoirePartagerId;
 
 typedef struct {

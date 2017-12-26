@@ -10,12 +10,8 @@
 #include "lib/mesJobs.h"
 #include "mytinyshell.h"
 
-#define shmPPEobtenir(var) {MP_MAT(pidProcessusExec,int*,idPidProcessusExec);\
-var = *pidProcessusExec;\
-shmdt((char*)pidProcessusExec); }
-#define shmPPEChanger(var) {MP_MAT(pidProcessusExec,int*,idPidProcessusExec);\
-*pidProcessusExec = var;\
-shmdt((char*)pidProcessusExec); }
+#define shmPPE_pidPExecChanger(i) (shmPPEChanger(i,idPidProcessusExec,pidProcessusExec,int*))
+#define shmPPE_pidPExecObtenir(var) (shmPPEobtenir(var,idPidProcessusExec,pidProcessusExec,int*))
 
 int *pidProcessusExec = NULL;
 
@@ -56,9 +52,9 @@ void monSigTstp(){
 
 	int valeur;
 	pid_t pid;
-	shmPPEobtenir(valeur);
+	shmPPE_pidPExecObtenir(valeur);
 	if ( valeur ){
-		shmPPEChanger(0);
+		shmPPE_pidPExecChanger(0);
 		mettreEnPauseUnProcessus(valeur);
 		
 		pid = fork();
@@ -70,9 +66,9 @@ void monSigTstp(){
 void monSigInt(){
 
 	int valeur;
-	shmPPEobtenir(valeur);
+	shmPPE_pidPExecObtenir(valeur);
 	if ( valeur ){
-		shmPPEChanger(0);
+		shmPPE_pidPExecChanger(0);
 		kill(valeur, SIGINT);
 	}
 	else monSigInt2();
@@ -144,7 +140,7 @@ int executeProgramme(char **uneCommande){
 		if (DEBUG) printf("[CONSOLE LOG] pid execvp %d\n", getpid());
 
 		if (commandeBackground) nouveauJobEnBackground();
-		else shmPPEChanger(getpid());
+		else shmPPE_pidPExecChanger(getpid());
 
 		executeRedirectionSiBesoin(uneCommande);
 
@@ -163,6 +159,7 @@ int executeProgramme(char **uneCommande){
 		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
 	
 		if (commandeBackground) commandeEnBackgroundTermine();
+		else shmPPE_pidPExecChanger(0);
 
 		signal(SIGINT, monSigInt);
 		return CODE_DERNIERE_PROCESSUS;
@@ -329,7 +326,7 @@ int main(int argc, char** argv, char **envp){
 	signal(SIGTSTP, monSigTstp);
 
 	idPidProcessusExec = MP_CREE(genererUneClef(PID_PROCESS_EXCEV_CLEF, 0), sizeof(int));
-	shmPPEChanger(0);
+	shmPPE_pidPExecChanger(0);
 
 	initialiserJobs();
 	shellId = processPereEstUnTinyShell();
