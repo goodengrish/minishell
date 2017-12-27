@@ -4,14 +4,6 @@
 #ifndef __CONST_MYTINISHELL_H__
 #define __CONST_MYTINISHELL_H__ 1
 
-#define REPERTOIR_BIN_PERSO "./bin"
-#define REPERTOIR_BIN_SH    "/bin/sh"
-#define ENVP_REPERTOIR_HOME "HOME"
-
-#define ENVP_REPERTOIR_COURRANT_PERSO "MYCD"
-#define ENVP_STATUS_PERSO "MYSTATUS"
-#define ENVP_STATUS_PID_PERSO "MYSTATUSPID"
-
 #define CODE_OU_LOGIQUE '|'
 #define CODE_ET_LOGIQUE '&'
 #define CODE_TUBE       'T'

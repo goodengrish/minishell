@@ -98,6 +98,7 @@ int emplacementvide(char *buffer, int max){
 
 int nouvelleEntrer(int *stouage, int empl){
 
+    if (DEBUG) printf("[CONSOLE LOG] Nouvelle entré [%d]\n", empl);
     for (; *stouage != -1; ++stouage);
     *stouage = empl; *(stouage+1) = -1;
     return 1;
@@ -115,6 +116,8 @@ int sub(int *stouage, char *buffer, int bg, int bd, int tsc, char *clefval, int 
             return 1;
         }
 
+        if ( TAILLE_MEMOIRE_PARTAGER_DEFAUT <= (bd+tsc)) return 0;
+
         else if (emplacementvide(buffer+bd, tsc) ){
             nouvelleEntrer(stouage, bd);
             strncpy(buffer+bd, clefval, cvlen);
@@ -126,8 +129,8 @@ int sub(int *stouage, char *buffer, int bg, int bd, int tsc, char *clefval, int 
 
 
     tsc >>=1;
-    return sub(stouage, buffer, bg, bd-tsc, tsc, clefval, cvlen) ||
-           sub(stouage, buffer, bd, bd+tsc, tsc, clefval, cvlen);
+    return sub(stouage, buffer, bg, bd>>1, tsc, clefval, cvlen) ||
+           sub(stouage, buffer, bd, bd<<1, tsc, clefval, cvlen);
 }
 
 int obtenirp(char *buffer, int *stouage, char *clef, int cleflen, int **empl){

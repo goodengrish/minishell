@@ -14,6 +14,10 @@
 
 #define AFFICHER_PROMPT() printf("~> ");
 
+void changerPidExec(int pid);
+void monSigTstp();
+void monSigInt();
+
 int executeProgramme(char **uneCommande);
 int executeProchaineCommande(char ***prochaineCommande, char *operateur);
 int executeLesCommandes(char **pointerProchaineCommande);

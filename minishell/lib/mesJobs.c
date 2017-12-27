@@ -4,6 +4,7 @@
 #include "memoirePartager.h"
 #include "ouvrirRepertoire.h"
 #include "utilitiesString.h"
+#include "../mytinyshell.h"
 #include "mesJobs.h"
 
 #define shmPPE_ndjChanger(i) (shmPPEChanger(i,idNumbreDeJobs,NUMBRE_DE_JOBS,int*))
@@ -47,6 +48,7 @@ void commandeEnBackgroundTermine(){
 
     printf(TERMINER_CMD_BACKGROUND, NOM_DERNIER_PROCESSUS, 0, getpid(), CODE_DERNIERE_PROCESSUS);
     kill(getpid(), SIGTERM);
+
 }
 
 void affichageDesJobs(char *jobIdstr){
@@ -59,10 +61,10 @@ void affichageDesJobs(char *jobIdstr){
     for (d=jobIdstr; *d && *d != EGAL; ++d);
     pid = atoi(++d);
 
-    if ( !retournerLaCommandeViaPid(pid, &d)){
-        ERREUR(MAUVAIS_SYNC_SHM_CMDLINE);
-    } else {
-        if ( *d == '\0' ) preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobIdstr);
+    if ( !retournerLaCommandeViaPid(pid, &d))
+        preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobIdstr);
+    else {
+        if ( *d == ANTISLASHZERO ) preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobIdstr);
         else printf(JUN_OB_AFFICHAGE, jobId, pid, STOPPER, d); 
         free(d);
     }
@@ -80,7 +82,7 @@ void mettreEnPauseUnProcessus(int pid){
     kill(pid, SIGTSTP);
 }
 
-int remprendreUnProcessus(char* jobAscii){
+int reprendreUnProcessus(char* jobAscii){
 
     int pidJobId;
     char *pidAscii;
@@ -91,7 +93,10 @@ int remprendreUnProcessus(char* jobAscii){
 
         pidJobId = atoi(pidAscii); free(pidAscii);
         signal(SIGCONT, SIG_DFL);
+        signal(SIGTSTP, monSigTstp);
+        signal(SIGINT, monSigInt);
         kill(pidJobId, SIGCONT);
+        changerPidExec(pidJobId);
         waitpid(pidJobId, NULL, 0);
         return 1;
 
@@ -104,6 +109,30 @@ int remprendreUnProcessus(char* jobAscii){
 
 }
 
+int reprendreUnProcessusEnBg(char *jobAscii){
+
+    int pidJobId;
+    char *pidAscii;
+
+    if ( obtenirLaValeurDuneClef(idZoneJob, jobAscii, &pidAscii) ){
+
+       // if ( dejaEnBg) erreur;
+
+        pidJobId = atoi(pidAscii); free(pidAscii);
+        signal(SIGCONT, SIG_DFL);
+        kill(pidJobId, SIGCONT);
+        signal(SIGTSTP, monSigTstp);
+        signal(SIGINT, monSigInt);
+        return 1;
+
+    } else {
+
+        printf(AUCUN_JOB_A_ID, jobAscii);
+    }
+
+    return 0;
+}
+
 int executeMyJobCommande(char **commande){
 
     if (!strcmp(*commande, MYJOB_STR)){
@@ -113,17 +142,17 @@ int executeMyJobCommande(char **commande){
 
     } else if (!strcmp(*commande, MYFG_STR)){
 
-        if ( estNull(*(commande+1)) ){ 
-            ERREUR("commande incompléte, utiliser myfg <jobId> (abandon)\n"); 
-            return 0;
-        }
+        if ( estNull(*(commande+1)) )
+            RETURN_ERREUR("commande incompléte, utiliser myfg <jobId> (abandon)\n",0); 
         
-        return remprendreUnProcessus( *(commande+1) );
+        return reprendreUnProcessus( *(commande+1) );
 
     } else if (!strcmp(*commande, MYBG_STR)){
 
-        ERREUR("Commande non implémenté\n");
-        return 0;
+        if ( estNull(*(commande+1)) )
+            RETURN_ERREUR("commande incompléte, utiliser mybg <jobId> (abandon)\n", 0); 
+
+        return reprendreUnProcessusEnBg( *(commande+1) );
     }
 
     else return IGNORE_COMMANDE;

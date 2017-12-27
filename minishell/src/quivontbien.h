@@ -19,7 +19,7 @@
 
 #define ERR -1
 #define IGNORE_COMMANDE -2
-#define DEBUG 1
+#define DEBUG 0
 
 #define ANTISLASHZERO '\0'
 #define RETOURALALIGNE '\n'

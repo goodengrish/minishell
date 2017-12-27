@@ -21,6 +21,13 @@ int CODE_DERNIERE_PROCESSUS = 0;
 char *NOM_DERNIER_PROCESSUS = NULL;
 MemoirePartagerId idLocal, idGlobal, idPidProcessusExec;
 
+void changerPidExec(int pid){
+
+	int i;
+	shmPPE_pidPExecObtenir(i);
+	if (i == 0) shmPPE_pidPExecChanger(pid);
+}
+
 void quitterShellProprement(){
 
 	nettoieUneZoneDeMemoirePartager(idLocal);
@@ -101,6 +108,14 @@ char *derniereSousCommande(char **uneCommande){
 	return *uneCommande;
 }
 
+int ee(char **c){
+
+	int i;
+	shmPPE_pidPExecObtenir(i);
+	if (!strcmp(*c,"shmpid")) {printf("pid shm [%d]\n", i); return 1;}
+	return IGNORE_COMMANDE;
+}
+
 int executeProgramme(char **uneCommande){
 
 	pid_t pid;
@@ -114,7 +129,8 @@ int executeProgramme(char **uneCommande){
 		 (status = executerCommandStatus(uneCommande)) != IGNORE_COMMANDE ||
 		 (status = executerCommandeExit(uneCommande)) != IGNORE_COMMANDE ||
 		 (status = executeMyJobCommande(uneCommande)) != IGNORE_COMMANDE ||
-		 (status = executerMyCd(uneCommande)) != IGNORE_COMMANDE 
+		 (status = executerMyCd(uneCommande)) != IGNORE_COMMANDE ||
+		 (status = ee(uneCommande)) != IGNORE_COMMANDE
 		) return (status == 1)? 0 : 1;
 
 	if ( !strcmp(derniereSousCommande(uneCommande),"&") ){
@@ -145,7 +161,7 @@ int executeProgramme(char **uneCommande){
 		executeRedirectionSiBesoin(uneCommande);
 
 		execvp(*uneCommande, uneCommande);
-		fprintf(stderr, "Le programme %s n'existe pas\n", *uneCommande);
+		fprintf(stderr, "Le programme [%s] n'existe pas\n", *uneCommande);
 		_exit(127);
 	
 	} else {

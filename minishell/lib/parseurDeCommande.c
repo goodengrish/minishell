@@ -82,11 +82,10 @@ char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoireParta
 	char *caractere;
 	
 	int arguments = 0, tailleMax = TAILLE_SORTIE_DEFAUT;
-	int carPrecedantEstSeparateur = 0;
+	int carPrecedantEstSeparateur = 1;
 
 	memset(bufferCommandes,0,TAILLE_SORTIE_DEFAUT);
-	if (UN_CARACTERE_SEPARATEUR(*buffer)) PDC_ERREUR_EXECUTER_ERREUR_SYMBOLE_INNATENDU(*buffer, buffer, bufferCommandes);
-
+	
 	for (caractere = buffer ; *caractere && isspace(*caractere); ++caractere);
 	for (arguments = 0 ; *caractere ; ++arguments){
 
