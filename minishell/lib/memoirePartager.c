@@ -99,6 +99,7 @@ int emplacementvide(char *buffer, int max){
 int nouvelleEntrer(int *stouage, int empl){
 
     if (DEBUG) printf("[CONSOLE LOG] Nouvelle entré [%d]\n", empl);
+
     for (; *stouage != -1; ++stouage);
     *stouage = empl; *(stouage+1) = -1;
     return 1;
@@ -137,7 +138,7 @@ int obtenirp(char *buffer, int *stouage, char *clef, int cleflen, int **empl){
 
     *empl = NULL;
     for (; *stouage != -1; ++stouage)
-        if ( !strncmp( (buffer+(*stouage) ), clef, cleflen) && buffer[(*stouage)+cleflen] == '=')
+        if ( !strncmp( (buffer+(*stouage) ), clef, cleflen) && buffer[(*stouage)+cleflen] == EGAL)
              *empl = stouage; return 1;
     
     
@@ -151,7 +152,7 @@ int supprimer(char *buffer, int *stouage, char *clef){
 
     if (obtenirp(buffer, stouage, clef, clen, &empl) && empl){
 
-        for (buffer += *empl; *buffer; ++buffer) *buffer = '\0';
+        for (buffer += *empl; *buffer; ++buffer) *buffer = ANTISLASHZERO;
         
         for (; *(empl+1) != -1; empl++) *empl = *(empl+1);
         *empl = -1;
@@ -168,8 +169,8 @@ int inserer(char *buffer, int *stouage, char *clefval){
     *c = '\0';
 
     supprimer(buffer, stouage, clefval); *c = '=';
-    return sub(stouage, buffer, 0, TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1,
-              TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1, clefval, strlen(clefval));
+    return (!sub(stouage, buffer, 0, TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1,
+              TAILLE_MEMOIRE_PARTAGER_DEFAUT>>1, clefval, strlen(clefval)))? -2 : 1;
 }
 
 int obetnir(char *buffer, int *stouage, char *clef, char **resultat){
@@ -218,8 +219,9 @@ int preformatSupprimerUneValeurMemoirePartager(MemoirePartagerId id, char *clefv
 
 int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemble){
 
-    for (; *ensemble && preformatAjouterUneValeurMemoirePartager(id, *ensemble); ++ensemble);
-    return 1;
+    int code = 1;
+    for (; *ensemble && (code=preformatAjouterUneValeurMemoirePartager(id, *ensemble)) == 1; ++ensemble);
+    return code;
 }
 
 int preformatAfficherMemoirePartager(MemoirePartagerId id, void(*affichage)(char* c) ){
@@ -262,7 +264,7 @@ int executerCommandOperationSurLesVariables(int espace , char **CommandesParLign
     }
     else return res;
     
-    if (**CommandesParLignes == '\n') return 0;
+    if (**CommandesParLignes == RETOURALALIGNE) return 0;
     if (!strcmp(ajouter, *CommandesParLignes)){
     
         if (*(CommandesParLignes+1) == NULL){
@@ -273,20 +275,21 @@ int executerCommandOperationSurLesVariables(int espace , char **CommandesParLign
         res = preformatAjouterUneValeurMemoirePartager(id,*(CommandesParLignes+1));
     
         switch (res){
-            case(0): printf("Commande incompléte (utiliser %s <variable>=<valeur>)\n", ajouter); break;
-            case(-1): printf("la variable doit être initialisé  (utiliser %s <variable>=<valeur>)\n", ajouter); break;
+            case(0): fprintf(stderr,MEMP_ERREUR_INCOMPLETE, ajouter); break;
+            case(-1): fprintf(stderr,MEMP_ERREUR_INCORRECT, ajouter); break;
+            case(-2): fprintf(stderr,MEMP_ERREUR_PASASSEZDESPACE, *(CommandesParLignes+1)); 
+                      res = 0; break;
         }
     }
     else if (!strcmp(enlever, *CommandesParLignes)){
 
         if (*(CommandesParLignes+1) == NULL){
-            printf("Commande incompléte (utiliser %s <variable>)\n", enlever); return 0;
+            fprintf(stderr,MEMP_ERREUR_INCOMPLETE, enlever); return 0;
         }
     
         res = preformatSupprimerUneValeurMemoirePartager(id,*(CommandesParLignes+1));
         switch (res){
-            case(0): printf("Element non trouvé\n"); break;
-            case(-1): printf("la variable n'existe pas (abandons)\n"); break;
+            case(0): fprintf(stderr,MEMP_ERREUR_ELEMENT_NON_TROUVER); break;
         }
     }
     

@@ -2,7 +2,7 @@
 #define __MEMOIRE_PARTAGER_H__ 1
 
 #define MEMOIRE_PARTAGER_SEPARATEUR '\n'
-#define TAILLE_MEMOIRE_PARTAGER_DEFAUT 1024
+#define TAILLE_MEMOIRE_PARTAGER_DEFAUT 2048
 
 #define VAR_LOCAL 1
 #define VAR_GLOBAL 2
@@ -15,7 +15,11 @@
 #define MEMP_ERREUR_KEYT "key_t-1\n"
 #define MEMP_ERREUR_SHMGET "shmget-1\n"
 #define MEMP_ERREUR_SHMAT "shmat-1\n"
-#define MEMP_ERREUR_PASASSEZDESPACE "Espace insufisant dans le zone pour inserer [%s] (abandons)\n"
+
+#define MEMP_ERREUR_ELEMENT_NON_TROUVER "Element non trouvé\n"
+#define MEMP_ERREUR_INCOMPLETE "Commande incompléte (utiliser %s <variable>=<valeur>)\n"
+#define MEMP_ERREUR_INCORRECT "la variable doit être initialisé  (utiliser %s <variable>=<valeur>)\n"
+#define MEMP_ERREUR_PASASSEZDESPACE "Espace insufisant dans le zone pour inserer [%s] (abandon)\n"
 
 #define MP_CREE(clef, s) (shmget(clef, s, IPC_CREAT | 0600))
 #define MP_MAT(r,t,id) (r=(t)shmat(id,0,0))

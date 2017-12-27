@@ -56,6 +56,7 @@ void affichageDesJobs(char *jobIdstr){
     if (DEBUG) printf("[CONSOLE LOG] lecture de [%s]\n", jobIdstr);
 
     char *d;
+    char *etat = INCONNUE;
     int jobId = atoi(jobIdstr), pid;
 
     for (d=jobIdstr; *d && *d != EGAL; ++d);
@@ -65,7 +66,14 @@ void affichageDesJobs(char *jobIdstr){
         preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobIdstr);
     else {
         if ( *d == ANTISLASHZERO ) preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobIdstr);
-        else printf(JUN_OB_AFFICHAGE, jobId, pid, STOPPER, d); 
+        else {
+            switch( etatDunProcessus(pid) ){
+            case(STOPPER_STR): etat = STOPPER; break;
+            case(ENCOUR_STR): etat = ENCOUR; break;
+            }
+
+            printf(JUN_OB_AFFICHAGE, jobId, pid, etat, d); 
+        }
         free(d);
     }
 }

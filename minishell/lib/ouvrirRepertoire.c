@@ -98,3 +98,28 @@ int obtenirLeFDFichier(char *fichierNom, int mode){
     return fd;
 
 }
+
+char etatDunProcessus(pid_t pid){
+
+    int fd;
+    char c;
+    char pidstr[7];
+    char *fichier = NULL;
+
+    memset(pidstr, 0 , 7);
+    sprintf(pidstr, "%d", pid);
+
+    fichier = fusionner3("/proc/", pidstr, "/status");
+    fd = open(fichier, O_RDONLY);
+    free(fichier);
+    if (fd == -1) return 'A';
+
+    for (; read(fd, &c, 1) && c != ':' ; );
+    for (; read(fd, &c, 1) && c != ':' ; );
+    for (; read(fd, &c, 1) && isspace(c) ; );
+
+    close(fd);
+
+    return c;
+
+}

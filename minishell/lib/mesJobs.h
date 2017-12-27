@@ -8,12 +8,15 @@
 #define MYJOB_STR "myjobs"
 
 #define STOPPER "Stoppé"
+#define STOPPER_STR 'T'
 #define ENCOUR  "En cours d'exécution"
+#define ENCOUR_STR 'S'
+#define INCONNUE "0"
 
 #define NOUVELLE_CMD_BACKGROUND "[%d] %d\n"
 #define TERMINER_CMD_BACKGROUND "%s (jobs=[%d], pid=%d) terminé avec status %d\n"
 #define MAUVAIS_SYNC_SHM_CMDLINE "erreur de synchronisation de la MpJob et des pid actifs (skip)\n"
-#define JUN_OB_AFFICHAGE "[%d] %d %20s %s\n"
+#define JUN_OB_AFFICHAGE "[%d] %d %22s %s\n"
 #define PAUSE_PROCESSUS "[%s] devient job n°%d\n"
 #define AUCUN_JOB_A_ID "Aucun job ne porte l'id %s (abandons)\n"
 
