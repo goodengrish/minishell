@@ -188,11 +188,9 @@ char** ignoreToutLesSeparateur(char **commande, char *seperateur){
 
     assert(CARACTERE_SEPARATEUR_DE_COMMANDE(seperateur));
 
-    char **prochaineCommande;
-
-    for (prochaineCommande = commande; *prochaineCommande ; ++prochaineCommande){
-        if (*prochaineCommande == NULL) return NULL;
-        if (strcmp(*prochaineCommande, seperateur)) return prochaineCommande+1;
+    for ( ; *commande ; ++commande){
+        if (!CARACTERE_SEPARATEUR_DE_COMMANDE(*commande)) continue;
+        if (strcmp(*commande, seperateur)) return commande+1;
     }
 
     return NULL;

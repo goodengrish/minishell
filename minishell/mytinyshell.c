@@ -52,7 +52,9 @@ void monSigInt2(){
 		if (c == MON_SININT_YES) kill(0, SIGTERM),exit(SIGINT);
 	}
 
-	for (; (c = getchar()) != '\n' && c != EOF; );
+	printf("Appuyez sur entrer\n");
+	for (; (c = getchar()) != EOF && c != '\n'; );
+	AFFICHER_PROMPT();
 }
 
 void monSigTstp(){
@@ -223,7 +225,6 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 
 int executeLesCommandes(char **pointerProchaineCommande){
 	
-	char operateurCommandeCourrantPrecedant = 0;
 	char operateurCommandeCourrantSuivante = 0;
 	int resultatDerniereCommande = 1;
 	int resultatDesCommandes = 0;
@@ -233,26 +234,21 @@ int executeLesCommandes(char **pointerProchaineCommande){
 
 	for (; !fini ;){
 
+		if (pointerProchaineCommande == NULL || *pointerProchaineCommande == NULL) break;
 		resultatDerniereCommande =  executeProchaineCommande(&pointerProchaineCommande, &operateurCommandeCourrantSuivante);
 		resultatDerniereCommande = (resultatDerniereCommande)? 0 : 1;
 
 		if (pointerProchaineCommande == NULL || *pointerProchaineCommande == NULL) fini = 1;
-		if (operateurCommandeCourrantPrecedant){
-			if (operateurCommandeCourrantPrecedant == CODE_ET_LOGIQUE){
-				if ( !(resultatDesCommandes  && resultatDerniereCommande) ) return 0;
-			} else if (operateurCommandeCourrantSuivante == CODE_OU_LOGIQUE){
-				if (resultatDerniereCommande) pointerProchaineCommande = ignoreToutLesSeparateur(pointerProchaineCommande, "||");
-				resultatDesCommandes = resultatDesCommandes || resultatDerniereCommande;
-				if (operateurCommandeCourrantSuivante == CODE_ET_LOGIQUE && !resultatDesCommandes) return 0;
-			} else if (operateurCommandeCourrantPrecedant == CODE_FIN_LIGNE) continue;
-		} else {
-			if (operateurCommandeCourrantSuivante == CODE_ET_LOGIQUE && !resultatDerniereCommande) return 0;
-			if (operateurCommandeCourrantSuivante == CODE_OU_LOGIQUE && resultatDerniereCommande) 
-				pointerProchaineCommande = ignoreToutLesSeparateur(pointerProchaineCommande, "||");
-			resultatDesCommandes = resultatDerniereCommande;
-		}
+		if (operateurCommandeCourrantSuivante == CODE_ET_LOGIQUE){
+			if ( !resultatDerniereCommande) 
+				pointerProchaineCommande = ignoreToutLesSeparateur(pointerProchaineCommande, "&&");
+		} 
+		else if (operateurCommandeCourrantSuivante == CODE_OU_LOGIQUE){
+			if (resultatDerniereCommande)
+			pointerProchaineCommande = ignoreToutLesSeparateur(pointerProchaineCommande, "||");
+		} 	
 
-		operateurCommandeCourrantPrecedant = operateurCommandeCourrantSuivante;
+		resultatDesCommandes = resultatDerniereCommande;
 	}
 
 	return resultatDesCommandes;

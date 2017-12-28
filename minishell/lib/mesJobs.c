@@ -99,6 +99,8 @@ int reprendreUnProcessus(char* jobAscii){
 
         preformatSupprimerUneValeurMemoirePartager(idZoneJob, jobAscii);
 
+        if ( zoneMpEstVide(idZoneJob) ) shmPPE_ndjChanger(0);
+
         pidJobId = atoi(pidAscii); free(pidAscii);
         signal(SIGCONT, SIG_DFL);
         signal(SIGTSTP, monSigTstp);
@@ -124,9 +126,11 @@ int reprendreUnProcessusEnBg(char *jobAscii){
 
     if ( obtenirLaValeurDuneClef(idZoneJob, jobAscii, &pidAscii) ){
 
-       // if ( dejaEnBg) erreur;
-
         pidJobId = atoi(pidAscii); free(pidAscii);
+
+        if ( etatDunProcessus(pidJobId) != STOPPER_STR)
+            RETURN_ERREUR("Le processus est déjà en background (abandon)\n", 0);
+        
         signal(SIGCONT, SIG_DFL);
         kill(pidJobId, SIGCONT);
         signal(SIGTSTP, monSigTstp);

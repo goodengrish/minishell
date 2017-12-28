@@ -19,8 +19,7 @@
 #define CARACTERE_TUBE(s) (*(s) == '|' && *(s+1) != '|')
 #define CARACTERE_VARIABLE(s) (*(s) == '$')
 #define CARACTERE_BACKGROUND(s) (*(s) == '&' && *(s+1) != '&')
-#define CARACTERE_SEPARATEUR_DE_COMMANDE(s) (CARACTERE_TUBE(s) ||\
-CARACTERE_FINCOMMANDE(s) || CARACTERE_BOOLEAN(s) )
+#define CARACTERE_SEPARATEUR_DE_COMMANDE(s) ( CARACTERE_FINCOMMANDE(s) || CARACTERE_BOOLEAN(s) )
 
 #define CARACTERE_REDIRECTION_O_STDOUT(s) ( (*(s)) == '>' && (*(s+1)) != '>')
 #define CARACTERE_REDIRECTION_A_STDOUT(s) ( (*s) == '>' && *(s+1) == '>' && *(s+2) != '>')

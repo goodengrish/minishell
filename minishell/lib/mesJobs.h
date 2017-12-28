@@ -19,6 +19,7 @@
 #define JUN_OB_AFFICHAGE "[%d] %d %22s %s\n"
 #define PAUSE_PROCESSUS "[%s] devient job n°%d\n"
 #define AUCUN_JOB_A_ID "Aucun job ne porte l'id %s (abandons)\n"
+#define PROCESSUS_DEJA_EN_BG "Le processus est déjà en background (abandon)\n"
 
 #define JOBIDFICHIER "/bin/sh"
 #define CHIFFRE_DE_JOB_MAX 7

@@ -51,7 +51,7 @@ int preformatAjouterUneValeurMemoirePartager(MemoirePartagerId id, char *clefval
 int preformatSupprimerUneValeurMemoirePartager(MemoirePartagerId id, char *clefvaleur);
 int preformatAjouterDesValeurMemoirePartager(MemoirePartagerId id, char **ensemble);
 void detacherMemoirePartager(void *zone);
-
+int zoneMpEstVide(MemoirePartagerId id);
 int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat);
 int executerCommandOperationSurLesVariables(int espace , char **CommandesParLignes);
 

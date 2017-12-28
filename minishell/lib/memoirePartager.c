@@ -235,6 +235,18 @@ int preformatAfficherMemoirePartager(MemoirePartagerId id, void(*affichage)(char
 
 }
 
+int zoneMpEstVide(MemoirePartagerId id){
+
+    int status = 0;
+
+    ZoneMp *zone = (ZoneMp*) attacherMemoirePartager(id);
+    P(zone->acces);
+    status = *(zone->stouage) == -1;
+    V(zone->acces);
+    detacherMemoirePartager(zone);
+    return status;
+}
+
 int obtenirLaValeurDuneClef(MemoirePartagerId id, char *clef, char **resultat){
     
     int status = 0;
