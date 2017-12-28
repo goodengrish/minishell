@@ -117,8 +117,6 @@ int sub(int *stouage, char *buffer, int bg, int bd, int tsc, char *clefval, int 
             return 1;
         }
 
-        if ( TAILLE_MEMOIRE_PARTAGER_DEFAUT <= (bd+tsc)) return 0;
-
         else if (emplacementvide(buffer+bd, tsc) ){
             nouvelleEntrer(stouage, bd);
             strncpy(buffer+bd, clefval, cvlen);
@@ -131,7 +129,7 @@ int sub(int *stouage, char *buffer, int bg, int bd, int tsc, char *clefval, int 
 
     tsc >>=1;
     return sub(stouage, buffer, bg, bd>>1, tsc, clefval, cvlen) ||
-           sub(stouage, buffer, bd, bd<<1, tsc, clefval, cvlen);
+           sub(stouage, buffer, bd, bd+(bd>>1), tsc, clefval, cvlen);
 }
 
 int obtenirp(char *buffer, int *stouage, char *clef, int cleflen, int **empl){

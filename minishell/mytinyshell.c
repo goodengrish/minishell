@@ -30,17 +30,13 @@ void changerPidExec(int pid){
 
 void quitterShellProprement(){
 
-	nettoieUneZoneDeMemoirePartager(idLocal);
 	detruireMemoirePartager(idLocal);
 	detruireJobs();
 
 	shmctl(idPidProcessusExec, IPC_RMID,0);
 
 	if (DEBUG){printf("[CONSOLE LOG] close ====== %d ======\n", shellId);}
-	if (!shellId){
-		nettoieUneZoneDeMemoirePartager(idGlobal);
-		detruireMemoirePartager(idGlobal);
-	}
+	if (!shellId) detruireMemoirePartager(idGlobal);
 }
 
 void monSigInt2(){
@@ -337,7 +333,7 @@ int main(int argc, char** argv, char **envp){
 	signal(SIGINT, monSigInt);
 	signal(SIGTSTP, monSigTstp);
 
-	idPidProcessusExec = MP_CREE(genererUneClef(PID_PROCESS_EXCEV_CLEF, 0), sizeof(int));
+	idPidProcessusExec = MP_CREE(genererUneClef(PID_PROCESS_EXCEV_CLEF, getpid()), sizeof(int));
 	shmPPE_pidPExecChanger(0);
 
 	initialiserJobs();

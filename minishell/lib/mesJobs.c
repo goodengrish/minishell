@@ -107,7 +107,7 @@ int reprendreUnProcessus(char* jobAscii){
         signal(SIGINT, monSigInt);
         kill(pidJobId, SIGCONT);
         changerPidExec(pidJobId);
-        waitpid(pidJobId, NULL, 0);
+        wait(NULL);
         return 1;
 
     } else {
@@ -172,13 +172,13 @@ int executeMyJobCommande(char **commande){
 
 void initialiserJobs(){
 
-    idZoneJob = creeEspaceDeMemoirePartager( genererUneClef(JOBIDFICHIER, 0) ,1);
+    idZoneJob = creeEspaceDeMemoirePartager( genererUneClef(JOBIDFICHIER, getpid()) ,1);
     idNumbreDeJobs = MP_CREE(genererUneClef(JOBIDFICHIER, 1), sizeof(int));
     shmPPE_ndjChanger(0);
 }
 
 void detruireJobs(){
 
-    detruireMemoirePartager(idZoneJob);
-    detruireMemoirePartager(idNumbreDeJobs);
+    shmctl(idZoneJob, IPC_RMID, 0);
+    shmctl(idNumbreDeJobs, IPC_RMID, 0);
 }

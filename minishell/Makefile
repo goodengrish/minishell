@@ -4,7 +4,10 @@ DEBUGFLAG = -DDEBUG=1
 EXECUTABLE_NOM = mysh
 OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o status.o mesJobs.o
 
-all: tinyshell
+all: tinyshell myls
+
+myls: 
+	$(CC) $(CFLAGS) src/myls.c -o myls
 
 debug: $(OBJECT)
 	$(CC) $(CFLAGS) $(DEBUGFLAG) $(OBJECT) -o $(EXECUTABLE_NOM)
