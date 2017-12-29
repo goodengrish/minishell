@@ -114,13 +114,32 @@ int ee(char **c){
 	return IGNORE_COMMANDE;
 }
 
-int executeProgramme(char **uneCommande){
+int executeProgramme(char **uneCommande, int *entrer){
 
 	pid_t pid;
 	int status;
+	int sortie[2];	
+	int commandeTube = 0;
 	int commandeBackground = 0;
+	char **prochaineCommande = NULL;
 
-	if ( estNull(*uneCommande) || !(**uneCommande) ) return 0;
+	if ( estNull(uneCommande) ||estNull(*uneCommande) || estNull(**uneCommande) ){
+		if ( estNull(entrer) ) return 0;
+		else {
+			char c;
+			for (; read(entrer[0], &c, 1); putchar(c));
+			close(entrer[0]);
+			return 0;
+		}
+	}
+
+	prochaineCommande = prochaineCommandeApresSeparateurStrict(uneCommande, "|");
+	if ( nonNull(prochaineCommande) ){
+		commandeTube = 1;
+		*(prochaineCommande-1) = NULL;
+		if ( pipe(sortie) == ERR ) FATALE_ERREUR("pipe -1\n", 126);	
+		
+	}
 
 	if ( (status = executerCommandOperationSurLesVariables(VAR_LOCAL, uneCommande)) != IGNORE_COMMANDE ||
 	     (status = executerCommandOperationSurLesVariables(VAR_GLOBAL, uneCommande)) != IGNORE_COMMANDE ||
@@ -158,6 +177,10 @@ int executeProgramme(char **uneCommande){
 
 		executeRedirectionSiBesoin(uneCommande);
 
+		if ( nonNull(entrer) ) close(0),dup(entrer[0]),close(entrer[0]);
+		
+		if (commandeTube) close(1),dup(sortie[1]),close(sortie[1]);
+
 		execvp(*uneCommande, uneCommande);
 		fprintf(stderr, "Le programme [%s] n'existe pas\n", *uneCommande);
 		_exit(127);
@@ -168,10 +191,15 @@ int executeProgramme(char **uneCommande){
 
 		wait(&status);
 
+		if ( nonNull(entrer) ) close(entrer[0]);
+		if (commandeTube) close(sortie[1]);
+		
 		CODE_DERNIERE_ARRET_OK = (WIFEXITED(status))? 1 : 0;
 		CODE_DERNIERE_PROCESSUS = (CODE_DERNIERE_ARRET_OK)? WEXITSTATUS(status) : ERR;
 		NOM_DERNIER_PROCESSUS = chaineCopie(*uneCommande);
 	
+		if (commandeTube && !CODE_DERNIERE_PROCESSUS) return executeProgramme(prochaineCommande, sortie);
+		
 		if (commandeBackground) commandeEnBackgroundTermine();
 		else shmPPE_pidPExecChanger(0);
 
@@ -215,9 +243,9 @@ int executeProchaineCommande(char ***prochaineCommande, char *operateur){
 
 	if (DEBUG){printf("[CONSOLE LOG] Lancement de:");afficherTableauDeString(uneCommande);}
 
-	return executeProgramme(uneCommande);
+	return executeProgramme(uneCommande, NULL);
 
-}
+} 
 
 int executeLesCommandes(char **pointerProchaineCommande){
 	

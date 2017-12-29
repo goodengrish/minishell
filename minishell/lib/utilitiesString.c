@@ -168,12 +168,22 @@ char **prochaineCommandeApresSeparateur(char **commande, char *seperateur){
 
     assert(CARACTERE_SEPARATEUR_DE_COMMANDE(seperateur));
 
-    char **prochaineCommande;
-
-    for (prochaineCommande = commande; *prochaineCommande && strcmp(*prochaineCommande,seperateur); ++prochaineCommande);
-    if (prochaineCommande == NULL) return prochaineCommande;
-    return prochaineCommande+1;
+    for (; *commande && strcmp(*commande,seperateur); ++commande);
+    return ( *commande == NULL )? NULL : commande+1;
 }
+
+char **prochaineCommandeApresSeparateurStrict(char **commande, char *seperateur){
+    
+        assert(CARACTERE_SEPARATEUR_DE_COMMANDE(seperateur));
+    
+        for (; *commande && strcmp(*commande,seperateur) &&
+               !CARACTERE_SEPARATEUR_DE_COMMANDE(*commande)
+                           ; ++commande);
+    
+        if ( *commande == NULL) return NULL;
+        if ( strcmp(*commande, seperateur)) return NULL;
+        return commande+1;
+    }
 
 int compterLeNombreDeSeparateur(char **commande, char *seperateur){
 

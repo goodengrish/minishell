@@ -36,11 +36,13 @@ int comparerJusqua(char *c1, char *c2, char finc1);
  * ("aaa && bb || cc", "||"") -> cc
 **/
 char **prochaineCommandeApresSeparateur(char **commande, char *seperateur);
+char **prochaineCommandeApresSeparateurStrict(char **commande, char *seperateur);
 
 /** retourne le pointer vers nouvelle zone ayant eu comme precedents caractére la chaine separateur 
  * ("aaa&&bb|cc","|") -> cc
 **/
 char *prochaineChaineApresSeparateur(char *chaine, char separateur);
+
 
 /** retourne le nombre de chaine etait agal au seprarateur */
 int compterLeNombreDeSeparateur(char **commande, char *seperateur);

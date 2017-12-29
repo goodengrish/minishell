@@ -18,7 +18,7 @@ void changerPidExec(int pid);
 void monSigTstp();
 void monSigInt();
 
-int executeProgramme(char **uneCommande);
+int executeProgramme(char **uneCommande, int*);
 int executeProchaineCommande(char ***prochaineCommande, char *operateur);
 int executeLesCommandes(char **pointerProchaineCommande);
 char **ChaineVersTabDeChaineParReference(MemoirePartagerId idLocal, MemoirePartagerId idGlobal, char *buffer);
