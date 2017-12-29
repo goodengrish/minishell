@@ -16,6 +16,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
+#include <pwd.h>
 
 #define ERR -1
 #define IGNORE_COMMANDE -2
@@ -32,6 +33,10 @@
 
 #define SHELLIDFICHIER "/bin/echo"
 #define DROITS_DE_BASE 0600
+
+// myps
+#define NUMBEROFTHEBEAST 666
+#define TAILLEMAXCHAINE 31
 
 #define nonNull(p) ( p )
 #define estNull(p) !nonNull(p)

@@ -4,7 +4,10 @@ DEBUGFLAG = -DDEBUG=1
 EXECUTABLE_NOM = mysh
 OBJECT = mytinyshell.o parseurDeCommande.o utilitiesString.o utilitiesRegex.o ouvrirRepertoire.o memoirePartager.o redirection.o status.o mesJobs.o
 
-all: tinyshell myls
+all: tinyshell myls myps
+
+myps: 
+	$(CC) $(CFLAGS) src/myps.c -o myps
 
 myls: 
 	$(CC) $(CFLAGS) src/myls.c -o myls
@@ -54,7 +57,7 @@ clean:
 	rm -rf *.o 2> /dev/null || true
 	rm -rf */*.o 2> /dev/null || true
 	rm shellId.txt 2> /dev/null || true
-	rm mysh 2> /dev/null || true
+	rm mysh myls myps 2> /dev/null || true
 
 clear: clean
 	rm -f project.zip

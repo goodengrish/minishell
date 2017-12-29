@@ -357,6 +357,10 @@ int executerMinishell(int idLocal, int idGlobal){
 }
 
 int main(int argc, char** argv, char **envp){
+
+	char *c = (char*) calloc(PATH_MAX+1, sizeof(char));
+    char *f = fusionner4("PATH=", getenv("PATH"), ":", getcwd(c, PATH_MAX));
+    putenv(f); free(c); free(f);
 	
 	signal(SIGINT, monSigInt);
 	signal(SIGTSTP, monSigTstp);

@@ -1,20 +1,23 @@
 #ifndef DEF_MYPS_H
 #define DEF_MYPS_H
 
-#define ROUGE(m) "\033[01;31m"m"\033[0m"
-#define VERT(m) "\033[22;32m"m"\033[0m"
-#define JAUNE(m) "\033[01;33m"m"\033[0m"
-#define BLUE(m) "\033[22;34m"m"\033[0m"
-#define MAGENTA(m) "\033[22;35m"m"\033[0m"
-#define CYAN(m) "\033[22;36m"m"\033[0m"
-#define RESET(m) "\033[22;30m"m"\033[0m"
+#define ROUGE "\033[1;31m"
+#define VERT "\033[1;32m"
+#define JAUNE "\033[1;33m"
+#define BLUE "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN "\033[1;36m"
+#define RESET "\033[0m"
 
-void afficheEnCouleurProcesus(int, char*);
+void afficheEnCouleurProcesus(char*);
 double calculUtilisationCPU(pid_t);
-char* recuperationEtat();
-unsigned long long recuperationVsize();
-unsigned long recuperationRss();
-char* recuperationNomProcessus();
-char* recuperationTty();
+char* recuperationEtat(pid_t);
+unsigned long long recuperationVsize(pid_t);
+unsigned long recuperationRss(pid_t);
+char* recuperationNomProcessus(pid_t);
+char* recuperationTty(pid_t);
+char* recuperationCommand(pid_t);
+char* recuperationUserName(pid_t);
+void listerPid();
 
 #endif

@@ -12,212 +12,267 @@ char* fusionner2(const char *mot1, const char *mot2){
     return mot;
 }
 
-/*
-  Idée d'amélioration:
-  Au lieu de faire cas par cas, on vérifie si le nom de l'état contient la lettre
-  par exemple: R+ contient R, SNs contient S
-  ne pas faire au cas par cas
-*/
-void afficheEnCouleurProcesus(int pid, char* etat){
+void afficheEnCouleurProcesus(char* etat){
   assert(etat);
 
   // Les variables comme R+ sont englobés dans l'état R, de même pour les autres états(Ss etc)
   if (!strcmp(etat, "R")){
-    printf(ROUGE("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;31m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
+
   else if (!strcmp(etat, "R+")){
-      printf(ROUGE("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;31m");
+    printf("%s ", etat);
+	printf("\033[0m");
     }
   else if (!strcmp(etat, "Z")){
-    printf(VERT("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;32m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "T")){
-    printf(JAUNE("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;33m");
+    printf("%s", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "S")){
-    printf(CYAN("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;36m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "Ss")){
-    printf(CYAN("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;36m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "SNs")){
-    printf(CYAN("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;36m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "U")){
-    printf(MAGENTA("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;35m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
   else if (!strcmp(etat, "Us")){
-    printf(MAGENTA("USER %s PID %d STAT %s\n"), "Adam", pid, etat);
+	printf("\033[1;35m");
+    printf("%s ", etat);
+	printf("\033[0m");
   }
 
 }
 
-/*
-  ls /proc
-	ps aux
-	USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND
-  fonction en cours de réalisation
-*/
+double recuperationCpuUsage(pid_t pid){
 
-double calculUtilisationCPU(pid_t pid){
+	char* pathPidStat = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	char* pathStat = "/proc/stat";
+	char* pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	char* buffer1 = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+	char* buffer2 = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+	char* str;
 
-  char* buffer;
-  char* chaineTmp;
-  char* ptrBuffer;
-  char* ptrChaineTmp;
-  char* pidToString;
+	char* ptr1;
+	char* ptr2;
+	char* ptrStr;
+	
+	long unsigned utime_before = -1;
+	long unsigned utime_after = -1;
+	long unsigned stime_before = -1;
+	long unsigned stime_after = -1;
 
-  int fd;
-  int cptEspace;
-  long utime = 0;
-  long stime = 0;
-  long cutime = 0;
-  long cstime = 0;
-  long starttime = 0;
+	double user_util = 0.0;
+	double sys_util = 0.0;
 
-  // attendant un pid en mode osef
-  pid_t pidd = getpid();
+	long time_total_before = 0;
+	long time_total_after = 0;
 
-  double tempsUpTimeCPU;
+	int fd1;
+	int fd2;
 
-  // calcul du temps d'utilisation du temps cpu
-  buffer = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  fd = open("/proc/uptime", O_RDONLY);
-  if (fd == ERR) perror("parcourirProc - open"), exit(1);
-  read(fd, buffer, TAILLEMAXCHAINE-1);
+	int cptEspace;
+	
+	sprintf(pidToString, "%d", pid);
+	strcpy(pathPidStat, "/proc/");
+	strcat(pathPidStat, pidToString);
+	strcat(pathPidStat, "/stat");
+	
+	fd1 = open(pathStat, O_RDONLY);
+	fd2 = open(pathPidStat, O_RDONLY);
+	if (fd1 != ERR && fd2 != ERR){
 
-  chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  ptrChaineTmp = chaineTmp;
+		if (read(fd1, buffer1, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationCpuUsage - read"), exit(3);
+		if (read(fd2, buffer2, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationCpuUsage - read"), exit(4);
+		
+		ptr1 = buffer1;
+		ptr2 = buffer2;
 
-  ptrBuffer = buffer;
-  for(; *ptrBuffer != ' ';){
-    *ptrChaineTmp++ = *ptrBuffer++;
-  }
+		// récupération des infos pour time_total dans /proc/stat à l'aide du file descriptor fd1
+		for(cptEspace = 0; cptEspace != 12;){
+			if (cptEspace == 0 && *ptr1 == ' '){
+				++cptEspace;
+			}
+			else if (cptEspace == 1 && *ptr1 == ' '){
+				++cptEspace;
+			}
+			else if (cptEspace == 2 && *ptr1 == ' '){
+				++ptr1;
+				++ptr1;
 
-  tempsUpTimeCPU = atof(chaineTmp);
+				while (cptEspace != 12){
+					str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+					ptrStr = str;
 
-  free(chaineTmp);
-  free(buffer);
+					while (*ptr1 != ' '){
+						*ptrStr++ = *ptr1++;
+					}
 
-  pidToString = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-  chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  sprintf(pidToString, "%d", pidd);
-  chaineTmp = fusionner2("/proc/", pidToString);
-  chaineTmp = fusionner2(chaineTmp, "/stat");
+					time_total_before += strtol(str, &ptrStr, 10);
+					free(str);
+					++cptEspace;
+					++ptr1;
+				}				
 
-  fd = open(chaineTmp, O_RDONLY);
-  if (fd == ERR) perror("calculUtilisationCPU - open"), exit(2);
-  buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-  read(fd, buffer, NUMBEROFTHEBEAST-1);
+				break;
+			}
+			else ++ptr1;
+		}
 
-  free(chaineTmp);
-  free(pidToString);
-  chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		// récupération de utime et stime dans /proc/[pid]/stat à l'aide du file descriptor fd2
+		for(cptEspace = 0, ptrStr = str ; cptEspace != 13;){
+			if (*ptr2 == ' ' && cptEspace != 13){
+				++cptEspace;
+				++ptr2;
+			}
+			else if (*ptr2 != ' ' && cptEspace != 13){
+				++ptr2;
+			}
+		}
+		
+		// on chope utime
+		str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		ptrStr = str;
+		while(*ptr2 != ' '){
+			*ptrStr++ = *ptr2++;
+		}
+		
+		++ptr2;
+		utime_before = strtol(str, &ptrStr, 10);
+		
+		free(str);
+		str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		ptrStr = str;
+		
+		while(*ptr2 != ' '){
+			*ptrStr++ = *ptr2++;
+		}
 
-  /*
-   récupérations de:
-    utime;
-    stime;
-    cutime;
-    cstime;
-    starttime;
-    problème: les valeurs du processus donnent 0 -> calcul impossible ! comment faire ?
-  */
-  for(cptEspace = 0, ptrChaineTmp = chaineTmp, ptrBuffer = buffer; *ptrBuffer;){
-    if (*ptrBuffer == ' ') ++cptEspace, ++ptrBuffer;
+		stime_before = strtol(str, &ptrStr, 10);
+		free(str);
 
-    // utime
-    if (cptEspace == 11){
+		// on met en pose le processus via sleep() et on récupére à nouveau les valeurs
+		sleep(1);
 
-      for(; *ptrBuffer != ' '; ){
-        *ptrChaineTmp++ = *ptrBuffer++;
-      }
+		
+		free(buffer1);
+		free(buffer2);
+		close(fd1);
+		close(fd2);
 
-      utime = atoi(chaineTmp);
-      free(chaineTmp);
-      chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      ptrChaineTmp = chaineTmp;
-      ptrBuffer += 2;
-      ++cptEspace;
-    }
+		buffer1 = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		buffer2 = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		
+		fd1 = open(pathStat, O_RDONLY);
+		fd2 = open(pathPidStat, O_RDONLY);
+		
+		if (read(fd1, buffer1, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationCpuUsage - read"), exit(5);
+		if (read(fd2, buffer2, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationCpuUsage - read"), exit(6);
 
-    // stime
-    else if (cptEspace == 12){
-      for(; *ptrBuffer != ' '; ){
-        *ptrChaineTmp++ = *ptrBuffer++;
-      }
+		ptr1 = buffer1;
+		ptr2 = buffer2;
+		
+		if (fd1 != ERR && fd2 != ERR){
+			for(cptEspace = 0; cptEspace != 12;){
+				if (cptEspace == 0 && *ptr1 == ' '){
+					++cptEspace;
+				}
+				else if (cptEspace == 1 && *ptr1 == ' '){
+					++cptEspace;
+				}
+				else if (cptEspace == 2 && *ptr1 == ' '){
+					++ptr1;
+					++ptr1;
 
-      stime = atoi(chaineTmp);
-      free(chaineTmp);
-      chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      ptrChaineTmp = chaineTmp;
-      ++ptrBuffer;
-      ptrBuffer += 2;
-      ++cptEspace;
-    }
-    // cutime
-    else if (cptEspace == 13){
-      for(; *ptrBuffer != ' '; ){
-        *ptrChaineTmp++ = *ptrBuffer++;
-      }
+					while (cptEspace != 12){
+						str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+						ptrStr = str;
 
-      cutime = atoi(chaineTmp);
-      free(chaineTmp);
-      chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      ptrChaineTmp = chaineTmp;
-      ++ptrBuffer;
-      ptrBuffer += 2;
-      ++cptEspace;
-    }
+						while (*ptr1 != ' '){
+							*ptrStr++ = *ptr1++;
+						}
 
-    // cstime
-    else if (cptEspace == 14){
-      for(; *ptrBuffer != ' '; ){
-        *ptrChaineTmp++ = *ptrBuffer++;
-      }
+						time_total_after += strtol(str, &ptrStr, 10);
+						free(str);
+						++cptEspace;
+						++ptr1;
+					}				
 
-      cstime = atoi(chaineTmp);
-      free(chaineTmp);
-      chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      ptrChaineTmp = chaineTmp;
-      ++ptrBuffer;
-      ptrBuffer += 2;
-      ++cptEspace;
-    }
+					break;
+				}
+				else ++ptr1;
+			}
 
-    // starttime
-    else if (cptEspace == 17){
-      for(; *ptrBuffer != ' '; ){
-        *ptrChaineTmp++ = *ptrBuffer++;
-      }
+			// récupération de utime et stime dans /proc/[pid]/stat à l'aide du file descriptor fd2
+			for(cptEspace = 0, ptrStr = str ; cptEspace != 13;){
+				if (*ptr2 == ' ' && cptEspace != 13){
+					++cptEspace;
+					++ptr2;
+				}
+				else if (*ptr2 != ' ' && cptEspace != 13){
+					++ptr2;
+				}
+			}
+		
+			// on chope utime
+			str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+			ptrStr = str;
+			while(*ptr2 != ' '){
+				*ptrStr++ = *ptr2++;
+			}
+		
+			++ptr2;
+			utime_after = strtol(str, &ptrStr, 10);
+		
+			free(str);
+			str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+			ptrStr = str;
+		
+			while(*ptr2 != ' '){
+				*ptrStr++ = *ptr2++;
+			}
 
-      starttime = atoi(chaineTmp);
-      free(chaineTmp);
-      chaineTmp = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      ptrChaineTmp = chaineTmp;
-      ++ptrBuffer;
-      break;
-    }
-    else ++ptrBuffer;
+			stime_after = strtol(str, &ptrStr, 10);
+			free(str);
 
-  }
-
-  printf("utime: %ld\n", utime);
-  printf("stime: %ld\n", stime);
-  printf("cutime: %ld\n", cutime);
-  printf("cstime: %ld\n", cstime);
-  printf("starttime: %ld\n", starttime);
-
-  free(buffer);
-  free(chaineTmp);
-  close(fd);
-  return tempsUpTimeCPU;
-
+			//printf("||||||||||||||||||||||||||||||\ntime_total_before: %lu | time_total_after: %lu | utime_before: %lu | utime_after: %lu | stime_before: %lu | stime_after: %lu\n",
+				//time_total_before, time_total_after, utime_before, utime_after, stime_before, stime_after);
+			
+			user_util = 100 * (utime_after - utime_before) / (time_total_after - time_total_before);
+			sys_util = 100 * (stime_after - stime_before) / (time_total_after - time_total_before);
+			return user_util + sys_util;
+			
+		}
+		else perror("recupeationCpuUsage - "), exit(2);
+		
+	}
+	else perror("recuperationCpuUsage - open"), exit(1);
+	
 }
 
-unsigned long recuperationRss(){
+unsigned long recuperationRss(pid_t pid){
 
-	pid_t pid = getpid();
   char* pidToString = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
   sprintf(pidToString, "%d", pid);
   char* chemin;
@@ -228,7 +283,7 @@ unsigned long recuperationRss(){
   int cptEspace = 0;
 
 	char*	buffer;
-  char* ptrBuffer;
+	char* ptrBuffer;
 	char* strRss = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 	char* ptrStrRss = strRss;
 
@@ -258,19 +313,21 @@ unsigned long recuperationRss(){
 				fd = open(fichierProcALire, O_RDONLY);
 				if (fd == ERR) perror("recuperationEtat - open - stat"), exit(1);
 				else{
-					buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-					read(fd, buffer, NUMBEROFTHEBEAST-1);
-          for(cptEspace = 0, ptrBuffer = buffer; cptEspace != 18; ++ptrBuffer){
-            if (*ptrBuffer == ' ') ++cptEspace;
-          }
+				buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+				if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationRss - read"), exit(3);
+          		for(cptEspace = 0, ptrBuffer = buffer; cptEspace != 23; ++ptrBuffer){
+            		if (*ptrBuffer == ' ') ++cptEspace;
+          		}
 
-					for(; *ptrBuffer != ' '; *ptrStrRss++ = *ptrBuffer++);
+				for(; *ptrBuffer != ' '; *ptrStrRss++ = *ptrBuffer++);
 					*ptrStrRss = '\0';
 					free(buffer);
 
 					rss = strtoul(strRss, '\0', 10);
+					close(fd);
+					free(pidToString);
+					free(strRss);
 					return rss;
-
 				}
 			}
 
@@ -285,9 +342,8 @@ unsigned long recuperationRss(){
 
 }
 
-unsigned long long recuperationVSize(){
+unsigned long long recuperationVSize(pid_t pid){
 
-  pid_t pid = getpid();
   char* pidToString = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
   sprintf(pidToString, "%d", pid);
   char* chemin;
@@ -298,7 +354,7 @@ unsigned long long recuperationVSize(){
   int cptEspace = 0;
 
 	char*	buffer;
-  char* ptrBuffer;
+  	char* ptrBuffer;
 	char* strVsize = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 	char* ptrStrVsize = strVsize;
 
@@ -317,7 +373,7 @@ unsigned long long recuperationVSize(){
 		*/
     for(; (entry = readdir(directory)) != NULL; ){
 			nomRepertoire = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      strcpy(nomRepertoire, entry->d_name);
+			strcpy(nomRepertoire, entry->d_name);
 
 			fichierProcALire = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 			fichierProcALire = fusionner2(chemin, "/");
@@ -330,8 +386,8 @@ unsigned long long recuperationVSize(){
 				if (fd == ERR) perror("recuperationEtat - open - stat"), exit(1);
 				else{
 					buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-					read(fd, buffer, NUMBEROFTHEBEAST-1);
-          for(cptEspace = 0, ptrBuffer = buffer; cptEspace != 17; ++ptrBuffer){
+					if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationVSize - read"), exit(3);
+          for(cptEspace = 0, ptrBuffer = buffer; cptEspace != 22; ++ptrBuffer){
             if (*ptrBuffer == ' ') ++cptEspace;
           }
 
@@ -340,178 +396,261 @@ unsigned long long recuperationVSize(){
 					free(buffer);
 
 					vsize = strtoull(strVsize, '\0', 10);
+					close(fd);
+					closedir(directory);
+					free(pidToString);
+					free(strVsize);
 					return vsize;
 
 				}
 			}
-
 			free(fichierProcALire);
 			free(nomRepertoire);
     }
 
-    closedir(directory);
+    	closedir(directory);
 		return vsize;
   }
   else perror("parcourirProc - opendir"), exit(3);
 
 }
 
-char* recuperationEtat(){
+char* recuperationEtat(pid_t pid){
 
-  pid_t pid = getpid();
-  char* pidToString = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-  sprintf(pidToString, "%d", pid);
-  char* chemin;
-  chemin = fusionner2("/proc/", pidToString);
-  DIR* directory = NULL;
-  struct dirent* entry;
-
-  int cptEspace;
-
-	char*	buffer;
-  char* ptrBuffer;
-	char* etat = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));;
-	char* ptrEtat = etat;
+	char* buffer;
+	char* chemin;
+	char* pidToString;
+	char* etat;
+	char* ptrEtat;
 
 	int fd;
 
-	char* nomRepertoire;
-	char* fichierProcALire;
+	int i;
+	
+	chemin = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 
-  directory = opendir(chemin);
-  if (directory != NULL){
-    free(pidToString);
+	sprintf(pidToString, "%d", pid);
+	strcpy(chemin, "/proc/");
+	strcat(chemin, pidToString);
+	strcat(chemin, "/status");
+	
+	fd = open(chemin, O_RDONLY);
+	if (fd != ERR){
+		buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		etat = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		
+		if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationUserName - open - read"), exit(1);
 
-    /*
-			On récupère l'état du processus dans /proc/[pidDuProcessus]/stat
-		*/
-    for(; (entry = readdir(directory)) != NULL; ){
-			nomRepertoire = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-      strcpy(nomRepertoire, entry->d_name);
+		for(i = 0; i < NUMBEROFTHEBEAST-1 ; ++i){
+			if (buffer[i] == 'S' && buffer[i+1] == 't' && buffer[i+2] == 'a' && buffer[i+3] == 't' && buffer[i+4] == 'e' ) break;
+		}
 
-			fichierProcALire = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-			fichierProcALire = fusionner2(chemin, "/");
-			fichierProcALire = fusionner2(fichierProcALire, nomRepertoire);
+		i += 7;
 
-			// On ouvre juste les fichiers dont on a besoin
-			if (!strcmp(nomRepertoire, "stat")){
-				fd = open(fichierProcALire, O_RDONLY);
+		for(ptrEtat = etat; buffer[i] != '\t' && buffer[i] != ' ';){
+			*ptrEtat++ = buffer[i++];
+		}
 
-				if (fd == ERR) perror("recuperationEtat - open - stat"), exit(1);
-				else{
-					buffer = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-					read(fd, buffer, TAILLEMAXCHAINE-1);
+		*ptrEtat = '\0';
+		close(fd);
 
-          for(cptEspace = 0, ptrBuffer = buffer; cptEspace != 2; ++ptrBuffer){
-            if (*ptrBuffer == ' ') ++cptEspace;
-          }
-
-					for(; *ptrBuffer != ' '; *ptrEtat++ = *ptrBuffer++);
-					*ptrEtat = '\0';
-					free(buffer);
-				}
-			}
-
-			free(fichierProcALire);
-			free(nomRepertoire);
-    }
-
-    closedir(directory);
 		return etat;
-  }
-  else perror("parcourirProc - opendir"), exit(3);
+		
+	}
+	else perror("recuperationUserName - open"), exit(2);
 }
 
-char* recuperationNomProcessus(){
+char* recuperationCommand(pid_t pid){
 
-  pid_t pid = getpid();
-  char* pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  sprintf(pidToString, "%d", pid);
-  char* chemin;
-  chemin = fusionner2("/proc/", pidToString);
-  DIR* directory = NULL;
-  struct dirent* entry;
+	char* buffer;
+	char* chemin;
+	char* pidToString;
 
-  char* buffer;
-  char* ptrBuffer;
-  char* strTmp;
-  char* ptrStrTmp;
+	char* command;
 
-  int fd;
+	int fd;
 
-  directory = opendir(chemin);
-  if (directory != NULL){
-    chemin = fusionner2(chemin, "/cmdline");
-    fd = open(chemin, O_RDONLY);
-    if (fd == ERR) perror("recuperationNomProcessus - opendir - open"), exit(2);
-    else{
-      buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-      ptrBuffer = buffer;
-      read(fd, buffer, NUMBEROFTHEBEAST-1);
-      return buffer;
-    }
+	int i;
+	int j;
+	
+	chemin = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 
-    close(directory);
-    close(fd);
+	sprintf(pidToString, "%d", pid);
+	strcpy(chemin, "/proc/");
+	strcat(chemin, pidToString);
+	strcat(chemin, "/status");
+	
+	fd = open(chemin, O_RDONLY);
+	if (fd != ERR){
+		buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		command = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
 
-  }
-  else perror("recuperationNomProcessus - opendir"), exit(1);
+		if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationCommand - read"), exit(3);
+
+		for(i = 6, j = 0; buffer[i] != '\t' && buffer[i] != ' ' && buffer[i] != '\b' && buffer[i] != '\n'; ++i){
+			command[j++] = buffer[i];
+		}
+		
+		free(buffer);
+		free(chemin);
+		free(pidToString);
+		close(fd);
+		return command;
+
+	}
+
+	else perror("recuperationCommand - open"), exit(2);
 
 }
 
-char* recuperationTty(){
+// à terminer
+char* recuperationStartTime(pid_t pid){
+	char* buffer;
+	char* path = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	char* pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
 
-  pid_t pid;
-  char* buffer;
-  char* ptrBuffer;
-  char* str;
-  char* ptrStr;
-  char* chemin;
-  char* pidToString;
+	int fd;
 
-  DIR* directory;
-  struct dirent* entry;
+	sprintf(pidToString, "%d", pid);
+	strcpy(path, "/proc/");
+	strcat(path, pidToString);
+	strcat(path, "/stat");
+	
+	fd = open(path, O_RDONLY);
+	if (fd != ERR){
+		
+		buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		
+		if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationStartTime - read"), exit(3);
+		return buffer;
+	}
+	else perror("recuperationStartTime - open"), exit(2);
+	
+}
 
-  int fd;
+char* recuperationUserName(pid_t pid){
 
-  /*
-    à modifier pour la suite car on a besoin de tous les pid des différents processus
-    et non d'un seul
-  */
-  pid = getpid();
-  TESTFORKOK(pid);
+	struct passwd* pwd;
 
-  chemin = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
-  sprintf(pidToString, "%d", pid);
-  strcpy(chemin, "/proc/");
-  strcat(chemin, pidToString);
-  strcat(chemin, "/fd/");
-  strcat(chemin, "0");
+	uid_t uid;
+	char* buffer;	
+	char* chemin;
+	char* pidToString;
+	char* uidString;
+	char* ptrUid;
 
-  //if ( (directory = opendir(chemin)) != NULL){
-    if ((fd = open(chemin, O_RDONLY)) == ERR) perror("RecuperationTty - opendir - open"), exit(2);
-    else{
-      buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
-      ptrBuffer = buffer;
-      //read(fd, buffer, NUMBEROFTHEBEAST-1);
-      return chemin;
-    }
-    close(directory);
-    close(fd);
-//  }
-  //else perror("recuperationTty - opendir"), exit(1);
+	int fd;
+
+	int i;
+	
+	chemin = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+	pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+
+	sprintf(pidToString, "%d", pid);
+	strcpy(chemin, "/proc/");
+	strcat(chemin, pidToString);
+	strcat(chemin, "/status");
+	
+	fd = open(chemin, O_RDONLY);
+	if (fd != ERR){
+		buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+		uidString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		
+		if (read(fd, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("recuperationUserName - open - read"), exit(1);
+
+		for(i = 0; i < NUMBEROFTHEBEAST-1 ; ++i){
+			if (buffer[i] == 'U' && buffer[i+1] == 'i' && buffer[i+2] == 'd') break;
+		}
+
+		i += 5;
+
+		for(ptrUid = uidString; buffer[i] != '\t' && buffer[i] != ' ';){
+			*ptrUid++ = buffer[i++];
+		}
+		
+		
+		uid = strtol(uidString, &ptrUid, 10);
+
+		pwd = getpwuid(uid);
+
+		close(fd);
+		free(buffer);
+		free(uidString);
+
+		return pwd->pw_name;
+		
+	}
+	else perror("recuperationUserName - open"), exit(2);
+}
+
+void listerPid(){
+	int pid = 1;
+	char* pidToString;
+	char* str;
+	char* command;
+	char* buffer;
+	char* chemin;
+	int fd;
+	int fd2;
+
+	printf("USER\tPID\tSTAT\tVSZ\tRSS\tCOMMAND\n\n");
+	for(; pid != 65534; ++pid){
+		pidToString = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		sprintf(pidToString, "%d", pid);
+		str = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+		strcpy(str, "/proc/");
+		strcat(str, pidToString);
+
+		if (((fd = open(str, O_RDONLY)) != ERR)){
+
+			chemin = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+			buffer = (char*) malloc(NUMBEROFTHEBEAST*sizeof(char));
+
+			strcpy(chemin, "/proc/");
+			strcat(chemin, pidToString);
+			strcat(chemin, "/status");
+
+			if (((fd2 = open(chemin, O_RDONLY)) == ERR)) perror("listerPid - open - open"), exit(1);
+
+			if (read(fd2, buffer, NUMBEROFTHEBEAST-1) == ERR) perror("listerPid - open - read"), exit(2);
+
+			close(fd);
+			close(fd2);
+
+			if (strstr(buffer, "State") != NULL){
+				
+				command = (char*) malloc(TAILLEMAXCHAINE*sizeof(char));
+
+				printf("%s\t", recuperationUserName(pid));
+				printf("%d\t", pid);
+				command = recuperationEtat(pid);
+				afficheEnCouleurProcesus(command);
+			 	printf("%llu\t", recuperationVSize(pid));
+				printf("%lu\t", recuperationRss(pid));
+				printf("%s\t", recuperationCommand(pid));
+				//printf("TTY: %s\n", recuperationTty(pid));
+				//printf("Start_time: %s\n", recuperationStartTime(pid));
+				//printf("CPU usage: %f\n", recuperationCpuUsage(pid));
+
+				printf("\n\n");
+
+				free(command);
+			}
+			else printf("NOPE\n");
+			free(chemin);
+			free(buffer);
+		}
+		
+		free(pidToString);
+	}
 
 }
 
 int main(int argc, char** argv){
 
-  //printf("Etat: %s\n", recuperationEtat());
-  //printf("Vsz: %llu\n", recuperationVSize());
-	//printf("Rss: %lu\n", recuperationRss());
-  //printf("nom du processus: %s\n", recuperationNomProcessus());
-  printf("TTY: %s\n", recuperationTty());
+	listerPid();
 
-
-  exit(0);
+	exit(0);
 }
