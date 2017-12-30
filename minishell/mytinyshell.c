@@ -363,7 +363,7 @@ int main(int argc, char** argv, char **envp){
 
 	if ( nonNull(d) ){
 		char *f = fusionner4("PATH=", getenv("PATH"), ":", d);
-		putenv(f); free(c); free(f);
+		putenv(f); free(c);
 	} else ERREUR("Une erreur est survenue lors de l'application d'un path de PATH (abandons)\n");
 	
 	signal(SIGINT, monSigInt);
