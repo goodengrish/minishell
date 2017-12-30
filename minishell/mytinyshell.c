@@ -359,8 +359,12 @@ int executerMinishell(int idLocal, int idGlobal){
 int main(int argc, char** argv, char **envp){
 
 	char *c = (char*) calloc(PATH_MAX+1, sizeof(char));
-    char *f = fusionner4("PATH=", getenv("PATH"), ":", getcwd(c, PATH_MAX));
-    putenv(f); free(c); free(f);
+	char *d = getcwd(c, PATH_MAX);
+
+	if ( nonNull(d) ){
+		char *f = fusionner4("PATH=", getenv("PATH"), ":", d);
+		putenv(f); free(c); free(f);
+	} else ERREUR("Une erreur est survenue lors de l'application d'un path de PATH (abandons)\n");
 	
 	signal(SIGINT, monSigInt);
 	signal(SIGTSTP, monSigTstp);

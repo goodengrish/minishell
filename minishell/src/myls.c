@@ -192,11 +192,6 @@ void execute_myls(char **path, Drapeaux *drap, int argc, char **argv){
 int main(int argc, char **argv){
 
   char *path = NULL;
-  char **c;
-
-  printf("Put args to myls:");
-  for (c = argv; *c; c++) printf("[%s] ",*c);
-  putchar('\n');
 
   Drapeaux drap;
   execute_myls(&path, &drap, argc, argv);
