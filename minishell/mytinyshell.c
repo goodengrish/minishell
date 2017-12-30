@@ -93,10 +93,15 @@ int executerMyCd(char **uneCommande){
 
 	if ( !strcmp(*uneCommande, CD_STR) ){
 		if ( estNull(*(uneCommande+1)) ) chdir(HOME_STR);
-		else chdir( *(uneCommande+1) );
+		else {
+			if ( (chdir( *(uneCommande+1) )) == ERR) {
+				fprintf(stderr, "Le répértoire [%s] n'éxiste pas (abandon)\n", *(uneCommande+1));
+				return 0;
+			}
+		}
 		return 1;
 	}
-
+			
 	return IGNORE_COMMANDE;
 }
 
@@ -363,7 +368,7 @@ int main(int argc, char** argv, char **envp){
 
 	if ( nonNull(d) ){
 		char *f = fusionner4("PATH=", getenv("PATH"), ":", d);
-		putenv(f); free(c); free(f);
+		putenv(f); free(c);
 	} else ERREUR("Une erreur est survenue lors de l'application d'un path de PATH (abandons)\n");
 	
 	signal(SIGINT, monSigInt);
