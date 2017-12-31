@@ -114,8 +114,10 @@ char etatDunProcessus(pid_t pid){
     free(fichier);
     if (fd == -1) return 'A';
 
-    for (; read(fd, &c, 1) && c != ':' ; );
-    for (; read(fd, &c, 1) && c != ':' ; );
+    for (; read(fd, &c, 1) ; ){
+	if (c == 'S' &&read(fd,&c,1)&&c=='t'&&read(fd,&c,1)&&c=='a'&&read(fd,&c,1)&&c=='t'&&
+            read(fd,&c,1)&&c=='e'&&read(fd,&c,1)&&c==':') break;
+    }
     for (; read(fd, &c, 1) && isspace(c) ; );
 
     close(fd);

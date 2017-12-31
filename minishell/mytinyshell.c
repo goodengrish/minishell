@@ -94,14 +94,13 @@ int executerMyCd(char **uneCommande){
 	if ( !strcmp(*uneCommande, CD_STR) ){
 		if ( estNull(*(uneCommande+1)) ) chdir(HOME_STR);
 		else {
-			if ( (chdir( *(uneCommande+1) )) == ERR) {
-				fprintf(stderr, "Le répértoire [%s] n'éxiste pas (abandon)\n", *(uneCommande+1));
-				return 0;
-			}
-		}
+                    if ( chdir( *(uneCommande+1) ) == ERR){
+			fprintf(stderr,"Le chemin %s n'éxiste pas (abandon)\n", *(uneCommande+1));
+			return 0;}
+                }
 		return 1;
 	}
-			
+
 	return IGNORE_COMMANDE;
 }
 
